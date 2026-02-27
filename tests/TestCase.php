@@ -2,9 +2,9 @@
 
 namespace AleMian95\Datatable\Tests;
 
+use AleMian95\Datatable\DatatableServiceProvider;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Orchestra\Testbench\TestCase as Orchestra;
-use AleMian95\Datatable\DatatableServiceProvider;
 
 class TestCase extends Orchestra
 {
