@@ -2,8 +2,8 @@
 
 namespace AleMian95\Datatable\Contracts;
 
-use Illuminate\Contracts\Database\Query\Builder;
 use AleMian95\Datatable\DatatableRequest;
+use Illuminate\Contracts\Database\Query\Builder;
 
 interface QueryApplier
 {

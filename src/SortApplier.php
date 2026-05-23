@@ -2,11 +2,11 @@
 
 namespace AleMian95\Datatable;
 
+use AleMian95\Datatable\Contracts\QueryApplier;
 use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
-use AleMian95\Datatable\Contracts\QueryApplier;
 
 class SortApplier implements QueryApplier
 {

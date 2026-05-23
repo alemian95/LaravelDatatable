@@ -2,12 +2,13 @@
 
 namespace AleMian95\Datatable;
 
+use AleMian95\Datatable\Contracts\QueryApplier;
 use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\Schema;
-use AleMian95\Datatable\Contracts\QueryApplier;
 
 class SearchApplier implements QueryApplier
 {
@@ -79,7 +80,7 @@ class SearchApplier implements QueryApplier
         return $columns;
     }
 
-    protected function getRelationColumns(\Illuminate\Database\Eloquent\Model $model, string $relationName): array
+    protected function getRelationColumns(Model $model, string $relationName): array
     {
         $parts = explode('.', $relationName);
         $currentModel = $model;

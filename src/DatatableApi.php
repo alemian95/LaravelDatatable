@@ -2,10 +2,10 @@
 
 namespace AleMian95\Datatable;
 
+use AleMian95\Datatable\Contracts\QueryApplier;
 use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Support\Facades\Log;
 use JsonSerializable;
-use AleMian95\Datatable\Contracts\QueryApplier;
 
 class DatatableApi implements JsonSerializable
 {

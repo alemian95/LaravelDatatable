@@ -2,8 +2,8 @@
 
 namespace AleMian95\Datatable;
 
-use Illuminate\Contracts\Database\Query\Builder;
 use AleMian95\Datatable\Contracts\QueryApplier;
+use Illuminate\Contracts\Database\Query\Builder;
 
 class FilterApplier implements QueryApplier
 {
