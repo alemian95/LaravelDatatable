@@ -2,9 +2,9 @@
 
 namespace AleMian95\Datatable;
 
+use AleMian95\Datatable\Commands\DatatableCommand;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
-use AleMian95\Datatable\Commands\DatatableCommand;
 
 class DatatableServiceProvider extends PackageServiceProvider
 {
