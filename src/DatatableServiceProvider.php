@@ -17,9 +17,10 @@ class DatatableServiceProvider extends PackageServiceProvider
          */
         $package
             ->name('laraveldatatable')
-            ->hasConfigFile()
-            ->hasViews()
-            ->hasMigration('create_laraveldatatable_table')
-            ->hasCommand(DatatableCommand::class);
+            // ->hasConfigFile()
+            // ->hasViews()
+            // ->hasMigration('create_laraveldatatable_table')
+            // ->hasCommand(DatatableCommand::class)
+            ;
     }
 }
