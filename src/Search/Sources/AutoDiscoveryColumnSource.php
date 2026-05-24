@@ -94,14 +94,18 @@ class AutoDiscoveryColumnSource
     {
         $parts = explode('.', $relationName);
         $currentModel = $model;
+        $cleanParts = [];
 
         foreach ($parts as $part) {
             // Defensive: stock Laravel's getEagerLoads() returns clean relation
             // names, but unusual constraint strings or future versions could
-            // emit "relation as alias" keys. We resolve against the relation
-            // method name (before " as "), and keep the original $relationName
-            // as the dot-notation column prefix downstream.
+            // emit "relation as alias" keys. Strip the suffix from each segment
+            // so it's used neither to resolve the method nor to prefix the
+            // emitted columns — the output is always clean dot-notation that
+            // SearchApplier can pass to orWhereHas() (which resolves the
+            // relation via the method name, ignoring any eager-load alias).
             $methodName = explode(' as ', $part, 2)[0];
+            $cleanParts[] = $methodName;
 
             if (! method_exists($currentModel, $methodName)) {
                 return [];
@@ -116,12 +120,14 @@ class AutoDiscoveryColumnSource
             $currentModel = $relation->getRelated();
         }
 
+        $cleanRelationName = implode('.', $cleanParts);
+
         $relatedTable = $currentModel->getTable();
         $rawColumns = Schema::getColumnListing($relatedTable);
         $filtered = $this->filterColumns($relatedTable, $rawColumns);
 
         return array_values(array_map(
-            fn (string $column): string => "{$relationName}.{$column}",
+            fn (string $column): string => "{$cleanRelationName}.{$column}",
             $filtered,
         ));
     }

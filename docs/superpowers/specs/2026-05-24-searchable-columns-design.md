@@ -73,7 +73,7 @@ Colonne effettive da cercare:
 - **Auto-discovery: filtri minimi sempre attivi.** Anche quando attiva, l'auto-discovery applica:
   - solo colonne di tipo string-like (`string`, `text`, `char`, `varchar`, `tinytext`, `mediumtext`, `longtext`, `uuid`, `guid`) via `Schema::getColumnType`, per evitare crash Postgres su `LIKE` con tipi non-string;
   - esclusione dei nomi/pattern definiti in `config.search.auto_discovery_blacklist` (matching case-insensitive con wildcard `*`).
-- **Eager-loads.** Per Eloquent con eager-loads, l'auto-discovery include colonne delle relazioni (con prefisso `relation.colonna`). I segmenti dei nomi relation sono trattati difensivamente: un eventuale suffisso ` as alias` viene strippato prima di risolvere il method name (stock Laravel non emette tali chiavi via `with()`, ma il guard previene drop silenziosi se un giorno succedesse).
+- **Eager-loads.** Per Eloquent con eager-loads, l'auto-discovery include colonne delle relazioni (con prefisso `relation.colonna`). I segmenti dei nomi relation sono trattati difensivamente: un eventuale suffisso ` as alias` viene strippato sia per risolvere il method name sia per costruire il prefisso colonna emesso, così l'output è sempre dot-notation pulita che `SearchApplier` può passare a `orWhereHas()` senza modifiche (stock Laravel non emette tali chiavi via `with()`, ma il guard previene drop silenziosi e output incoerenti se un giorno succedesse).
 
 ## 5. API pubblica
 
@@ -425,7 +425,7 @@ Cambi applicati a questo design durante l'iterazione post-implementazione (final
 2. **Intersezione con auto-discovery anche nel branch fallback.** Quando non c'è whitelist e auto-discovery è on, `request.search_columns` viene intersecato col risultato dell'auto-discovery (e quindi soggetto a blacklist + filtro tipo), invece di vincere senza filtro come previsto nel design originale. Chiude un buco di sicurezza che permetteva al client di forzare colonne blacklisted.
 3. **Strict mode incondizionato.** Quando `auto_discover_columns=false` e non c'è whitelist, l'eccezione è lanciata anche se `request.search_columns` è presente. Il design originale aveva una concessione per il "raw QueryBuilder ad-hoc" che è risultata bypassabile.
 4. **Inclusione di `uuid`/`guid`** in `SEARCHABLE_TYPES`. Senza, le colonne `$table->uuid()` venivano silenziosamente escluse su MySQL/Postgres.
-5. **Defensive stripping di ` as alias`** nei segmenti dei nomi relation eager-loaded. Stock Laravel non emette tali chiavi, ma il guard previene drop silenziosi se future versioni o constraint string anomale dovessero produrli.
+5. **Defensive stripping di ` as alias`** nei segmenti dei nomi relation eager-loaded, sia per la risoluzione del method sia per il prefisso colonna emesso. Stock Laravel non emette tali chiavi, ma il guard previene drop silenziosi e output incoerenti se future versioni o constraint string anomale dovessero produrli.
 6. **Binding `scoped` invece di `singleton`** per `SearchColumnResolver` nel service provider. Multi-tenant friendly + Octane-safe.
 7. **Warning nel trait** quando `$searchable` è assente o di tipo errato (typo come `$searchabel`). Diagnostica importante dato che con la nuova semantica `[]` blocca la search.
 8. **Warning nel `SearchApplier`** quando entries dot-notation vengono droppate su raw `QueryBuilder`. Sostituisce il silent drop precedente che produceva zero match senza diagnostica.
