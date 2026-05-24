@@ -21,6 +21,9 @@ class DatatableApi implements JsonSerializable
 
     protected ?\Closure $customSearch = null;
 
+    /** @var array<int, string>|null */
+    protected ?array $apiDeclaredSearchColumns = null;
+
     protected bool $hasResource = false;
 
     /**
@@ -41,6 +44,22 @@ class DatatableApi implements JsonSerializable
     public function withCustomSearch(\Closure $search): self
     {
         $this->customSearch = $search;
+
+        return $this;
+    }
+
+    /**
+     * Declare the authoritative whitelist of searchable columns for this
+     * DatatableApi instance. Wins over HasSearchableColumns on the model and
+     * is the only way to expose searchable columns for raw QueryBuilder
+     * queries when auto_discover_columns is disabled.
+     *
+     * @param  array<int, string>  $columns
+     * @return $this
+     */
+    public function withSearchableColumns(array $columns): self
+    {
+        $this->apiDeclaredSearchColumns = $columns;
 
         return $this;
     }
@@ -92,7 +111,11 @@ class DatatableApi implements JsonSerializable
     public function jsonSerialize(): mixed
     {
         $appliers = [
-            new SearchApplier($this->customSearch),
+            new SearchApplier(
+                app(\AleMian95\Datatable\Contracts\SearchColumnResolver::class),
+                $this->customSearch,
+                $this->apiDeclaredSearchColumns,
+            ),
             new SortApplier($this->customSorts),
             ...$this->appliers,
         ];
