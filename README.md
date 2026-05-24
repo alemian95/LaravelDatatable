@@ -18,7 +18,7 @@ We highly appreciate you sending us a postcard from your hometown, mentioning wh
 ## Requirements
 
 - PHP `^8.4`
-- Laravel `^11.0 || ^12.0`
+- Laravel `^11.0 || ^12.0 || ^13.0`
 
 ## Installation
 
@@ -155,55 +155,57 @@ public function index()
 }
 ```
 
-### Advanced & known limits
+### Searchable columns
 
-1. **Searchable columns: declarative opt-in (recommended).** The set of columns that can be searched is resolved in this order:
+The set of columns that can be searched is resolved in this order:
 
-   1. `DatatableApi::withSearchableColumns(['col_a', 'col_b'])` — wins over everything.
-   2. `Model implements HasSearchableColumns` — the contract returns the whitelist (the trait `Concerns\HasSearchableColumns` reads a `protected array $searchable = [...]` property by default).
-   3. Auto-discovery via `Schema::getColumnListing` — fallback **only** when `config('laraveldatatable.search.auto_discover_columns')` is `true` (default for backward compatibility). Filters out non-string columns and applies the `auto_discovery_blacklist`. When the request supplies `search_columns` in this branch, they are intersected against the auto-discovery result — so the type filter and the blacklist also protect against client-supplied column names.
+1. `DatatableApi::withSearchableColumns(['col_a', 'col_b'])` — wins over everything.
+2. `Model implements HasSearchableColumns` — the contract returns the whitelist (the trait `Concerns\HasSearchableColumns` reads a `protected array $searchable = [...]` property by default).
+3. Auto-discovery via `Schema::getColumnListing` — fallback **only** when `config('laraveldatatable.search.auto_discover_columns')` is `true` (default for backward compatibility). Filters out non-string columns and applies the `auto_discovery_blacklist`. When the request supplies `search_columns` in this branch, they are intersected against the auto-discovery result — so the type filter and the blacklist also protect against client-supplied column names.
 
-   When a whitelist is declared, `search_columns` from the HTTP request is intersected against it: the client can never broaden it. An empty whitelist (`withSearchableColumns([])` or `protected array $searchable = []`) is treated as an **authoritative signal to omit the search clause entirely** — no `LIKE` is applied, the dataset is returned unfiltered by the search term (pagination, sorting and other filters still apply), and there is no fallback to the next source. When no source can satisfy the request and auto-discovery is off, a `SearchColumnsNotConfiguredException` is thrown.
+When a whitelist is declared, `search_columns` from the HTTP request is intersected against it: the client can never broaden it. An empty whitelist (`withSearchableColumns([])` or `protected array $searchable = []`) is treated as an **authoritative signal to omit the search clause entirely** — no `LIKE` is applied, the dataset is returned unfiltered by the search term (pagination, sorting and other filters still apply), and there is no fallback to the next source. When no source can satisfy the request and auto-discovery is off, a `SearchColumnsNotConfiguredException` is thrown.
 
-   Example with the trait:
+Example with the trait:
 
-   ```php
-   use AleMian95\Datatable\Contracts\HasSearchableColumns;
-   use AleMian95\Datatable\Concerns\HasSearchableColumns as HasSearchableColumnsTrait;
+```php
+use AleMian95\Datatable\Contracts\HasSearchableColumns;
+use AleMian95\Datatable\Concerns\HasSearchableColumns as HasSearchableColumnsTrait;
 
-   class User extends Model implements HasSearchableColumns
-   {
-       use HasSearchableColumnsTrait;
+class User extends Model implements HasSearchableColumns
+{
+    use HasSearchableColumnsTrait;
 
-       protected array $searchable = ['first_name', 'last_name', 'email', 'profile.bio'];
-   }
-   ```
+    protected array $searchable = ['first_name', 'last_name', 'email', 'profile.bio'];
+}
+```
 
-   Example with the per-request override (works for both Eloquent and raw `QueryBuilder`):
+Example with the per-request override (works for both Eloquent and raw `QueryBuilder`):
 
-   ```php
-   return new DatatableApi()
-       ->fromQuery(DB::table('users'))
-       ->withSearchableColumns(['name', 'email']);
-   ```
+```php
+return new DatatableApi()
+    ->fromQuery(DB::table('users'))
+    ->withSearchableColumns(['name', 'email']);
+```
 
-   To make declaration mandatory project-wide, set in `config/laraveldatatable.php`:
+To make declaration mandatory project-wide, set in `config/laraveldatatable.php`:
 
-   ```php
-   'search' => [
-       'auto_discover_columns' => false,
-   ],
-   ```
+```php
+'search' => [
+    'auto_discover_columns' => false,
+],
+```
 
-   **Resolver lifecycle.** The `SearchColumnResolver` is bound to the container as a `scoped` instance, so each HTTP request / queue job receives a fresh resolver built from the current `laraveldatatable.search.*` values. This means multi-tenant setups that swap the config per request get the expected per-tenant behavior with no extra work. For the rare case of changing the config mid-request (e.g. inside tests), call `app()->forgetInstance(\AleMian95\Datatable\Contracts\SearchColumnResolver::class)` after the change to force re-resolution.
+**Resolver lifecycle.** The `SearchColumnResolver` is bound to the container as a `scoped` instance, so each HTTP request / queue job receives a fresh resolver built from the current `laraveldatatable.search.*` values. This means multi-tenant setups that swap the config per request get the expected per-tenant behavior with no extra work. For the rare case of changing the config mid-request (e.g. inside tests), call `app()->forgetInstance(\AleMian95\Datatable\Contracts\SearchColumnResolver::class)` after the change to force re-resolution.
 
-2. **Dot-notation search.** `search_columns=author.name` triggers `orWhereHas('author', fn ($q) => $q->whereLike('name', '%term%'))`. Works only on Eloquent builders / `Relation` instances; on a raw `QueryBuilder` the dotted entries are dropped and a `Log::warning` is emitted naming the ignored columns — useful when a query unexpectedly returns zero matches.
+### Known limits
 
-3. **Relational sorting supports `BelongsTo` only.** For `sort_by=author.name`, `SortApplier` performs a `leftJoin` on each `BelongsTo` segment and then orders by the joined column. For any other relation type (or any segment that is not a `BelongsTo`) it falls back to a plain `orderBy('author.name', ...)`, which will fail at the SQL layer because that column does not exist on the base table. Either expose such sorts via `withCustomSorts(...)` or restrict the client to `BelongsTo` paths.
+1. **Dot-notation search.** `search_columns=author.name` triggers `orWhereHas('author', fn ($q) => $q->whereLike('name', '%term%'))`. Works only on Eloquent builders / `Relation` instances; on a raw `QueryBuilder` the dotted entries are dropped and a `Log::warning` is emitted naming the ignored columns — useful when a query unexpectedly returns zero matches.
 
-4. **SQL logging outside production.** While `app()->isProduction()` is `false`, every assembled query is written to the application log via `Log::info($builder->toRawSql())`. This is intentional for local debugging — be aware of it in staging environments where it can produce noisy logs.
+2. **Relational sorting supports `BelongsTo` only.** For `sort_by=author.name`, `SortApplier` performs a `leftJoin` on each `BelongsTo` segment and then orders by the joined column. For any other relation type (or any segment that is not a `BelongsTo`) it falls back to a plain `orderBy('author.name', ...)`, which will fail at the SQL layer because that column does not exist on the base table. Either expose such sorts via `withCustomSorts(...)` or restrict the client to `BelongsTo` paths.
 
-5. **The `Datatable` facade is currently a no-op.** `AleMian95\Datatable\Datatable` is an empty class and its facade alias exists for forward compatibility. Always instantiate `DatatableApi` directly — `Datatable::something(...)` will not work.
+3. **SQL logging outside production.** While `app()->isProduction()` is `false`, every assembled query is written to the application log via `Log::info($builder->toRawSql())`. This is intentional for local debugging — be aware of it in staging environments where it can produce noisy logs.
+
+4. **The `Datatable` facade is currently a no-op.** `AleMian95\Datatable\Datatable` is an empty class and its facade alias exists for forward compatibility. Always instantiate `DatatableApi` directly — `Datatable::something(...)` will not work.
 
 ## Testing
 
