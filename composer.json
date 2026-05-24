@@ -64,10 +64,7 @@
         "laravel": {
             "providers": [
                 "AleMian95\\Datatable\\DatatableServiceProvider"
-            ],
-            "aliases": {
-                "Datatable": "AleMian95\\Datatable\\Facades\\Datatable"
-            }
+            ]
         }
     },
     "minimum-stability": "dev",

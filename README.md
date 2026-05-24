@@ -205,8 +205,6 @@ To make declaration mandatory project-wide, set in `config/laraveldatatable.php`
 
 3. **SQL logging outside production.** While `app()->isProduction()` is `false`, every assembled query is written to the application log via `Log::info($builder->toRawSql())`. This is intentional for local debugging — be aware of it in staging environments where it can produce noisy logs.
 
-4. **The `Datatable` facade is currently a no-op.** `AleMian95\Datatable\Datatable` is an empty class and its facade alias exists for forward compatibility. Always instantiate `DatatableApi` directly — `Datatable::something(...)` will not work.
-
 ## Testing
 
 ```bash
