@@ -72,3 +72,22 @@ it('works on a raw QueryBuilder using the from table', function () {
     expect($columns)->toContain('first_name');
     expect($columns)->not->toContain('id');
 });
+
+it('survives eager-load keys with an " as alias" suffix without crashing', function () {
+    // Stock Laravel does not emit such keys via ->with(), but unusual constraint
+    // strings or future versions could. We inject the key directly to verify
+    // the defensive resolution path: method_exists is checked against the part
+    // before " as ", while the original key remains the column-prefix.
+    $source = new AutoDiscoveryColumnSource([]);
+
+    $builder = TestUser::query();
+    $builder->setEagerLoads(['posts as p' => fn ($q) => $q]);
+
+    $columns = $source->columns($builder);
+
+    // Best-effort: the dot-notation prefix is the original key (no opinion on
+    // what "alias" should mean — we just don't crash and we surface the
+    // discovered string columns).
+    expect($columns)->toContain('posts as p.title');
+    expect($columns)->toContain('posts as p.body');
+});

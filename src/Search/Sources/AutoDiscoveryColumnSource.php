@@ -96,11 +96,18 @@ class AutoDiscoveryColumnSource
         $currentModel = $model;
 
         foreach ($parts as $part) {
-            if (! method_exists($currentModel, $part)) {
+            // Defensive: stock Laravel's getEagerLoads() returns clean relation
+            // names, but unusual constraint strings or future versions could
+            // emit "relation as alias" keys. We resolve against the relation
+            // method name (before " as "), and keep the original $relationName
+            // as the dot-notation column prefix downstream.
+            $methodName = explode(' as ', $part, 2)[0];
+
+            if (! method_exists($currentModel, $methodName)) {
                 return [];
             }
 
-            $relation = $currentModel->$part();
+            $relation = $currentModel->$methodName();
 
             if (! ($relation instanceof Relation)) {
                 return [];
