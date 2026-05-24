@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Schema;
 
 class AutoDiscoveryColumnSource
 {
-    private const SEARCHABLE_TYPES = ['string', 'text', 'char', 'varchar', 'tinytext', 'mediumtext', 'longtext'];
+    private const SEARCHABLE_TYPES = ['string', 'text', 'char', 'varchar', 'tinytext', 'mediumtext', 'longtext', 'uuid', 'guid'];
 
     /**
      * @param  array<int, string>  $blacklist  Column names or wildcard patterns (case-insensitive).
