@@ -197,9 +197,65 @@ To make declaration mandatory project-wide, set in `config/laraveldatatable.php`
 
 **Resolver lifecycle.** The `SearchColumnResolver` is bound to the container as a `scoped` instance, so each HTTP request / queue job receives a fresh resolver built from the current `laraveldatatable.search.*` values. This means multi-tenant setups that swap the config per request get the expected per-tenant behavior with no extra work. For the rare case of changing the config mid-request (e.g. inside tests), call `app()->forgetInstance(\AleMian95\Datatable\Contracts\SearchColumnResolver::class)` after the change to force re-resolution.
 
+### Relational search
+
+When `search_columns` contains a dot — `author.name`, `tags.label` — the package needs to know how to resolve the relation segment (`author`, `tags`) into SQL.
+
+**On Eloquent builders** the relation is auto-discovered from the model. No extra configuration is needed:
+
+```php
+return new DatatableApi()
+    ->fromQuery(Book::query())
+    ->withSearchableColumns(['title', 'author.name', 'tags.label']);
+```
+
+Supported relation types via auto-discovery: `BelongsTo`, `HasOne`, `HasMany`, `BelongsToMany`. Other relation types (`MorphTo`, `HasManyThrough`, …) need an explicit declaration via `withRelationSearch()` using `RelationSearch::custom()`.
+
+**On a raw `QueryBuilder`** there is no model to introspect, so the relation must be declared explicitly:
+
+```php
+use AleMian95\Datatable\Search\RelationSearch;
+
+return new DatatableApi()
+    ->fromQuery(DB::table('books'))
+    ->withSearchableColumns(['title', 'author.name'])
+    ->withRelationSearch([
+        'author' => RelationSearch::belongsTo('authors'),
+    ]);
+```
+
+Smart defaults follow the Laravel conventions: `belongsTo('authors')` assumes `author_id` and `id`. Override only when the schema diverges:
+
+```php
+->withRelationSearch([
+    'author'    => RelationSearch::belongsTo('writers', localKey: 'written_by', remoteKey: 'uuid'),
+    'publisher' => RelationSearch::hasOne('publishers', foreignKey: 'book_isbn', localKey: 'isbn'),
+    'tags'      => RelationSearch::belongsToMany('tags', pivot: 'book_tag'),
+])
+```
+
+A declared spec wins over Eloquent auto-discovery for the same relation key, which is the right tool to inject custom scopes (soft-delete filtering, tenant constraints) without rewriting the whole search:
+
+```php
+->withRelationSearch([
+    'author' => RelationSearch::custom(function ($query, $remoteColumn, $term) {
+        $query->orWhereExists(fn ($sub) =>
+            $sub->from('authors')
+                ->whereColumn('authors.id', 'books.author_id')
+                ->whereNull('authors.deleted_at')
+                ->whereLike("authors.{$remoteColumn}", "%{$term}%")
+        );
+    }),
+])
+```
+
+**Multi-hop** dotted paths (`book.author.country.name`) are resolved automatically on Eloquent via the existing `orWhereHas` chain. On raw `QueryBuilder` multi-hop is unsupported in v1 — the column is dropped with a `Log::warning`.
+
+**Generated SQL** uses `orWhereExists` with explicit key joins (and an inner join for `belongsToMany`). Columns are always qualified `table.column` to avoid ambiguity with the base table.
+
 ### Known limits
 
-1. **Dot-notation search.** `search_columns=author.name` triggers `orWhereHas('author', fn ($q) => $q->whereLike('name', '%term%'))`. Works only on Eloquent builders / `Relation` instances; on a raw `QueryBuilder` the dotted entries are dropped and a `Log::warning` is emitted naming the ignored columns — useful when a query unexpectedly returns zero matches.
+1. **Multi-hop dot-notation on raw `QueryBuilder`.** Single-hop paths (`author.name`) work on both Eloquent and raw queries — see [Relational search](#relational-search). Multi-hop paths (`author.country.name`) are supported only on Eloquent (resolved via `orWhereHas`); on a raw `QueryBuilder` they are dropped with a `Log::warning`.
 
 2. **Relational sorting supports `BelongsTo` only.** For `sort_by=author.name`, `SortApplier` performs a `leftJoin` on each `BelongsTo` segment and then orders by the joined column. For any other relation type (or any segment that is not a `BelongsTo`) it falls back to a plain `orderBy('author.name', ...)`, which will fail at the SQL layer because that column does not exist on the base table. Either expose such sorts via `withCustomSorts(...)` or restrict the client to `BelongsTo` paths.
 
