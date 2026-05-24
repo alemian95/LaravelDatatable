@@ -41,6 +41,7 @@
     "autoload-dev": {
         "psr-4": {
             "AleMian95\\Datatable\\Tests\\": "tests/",
+            "AleMian95\\Datatable\\Tests\\Fixtures\\": "tests/Fixtures/",
             "Workbench\\App\\": "workbench/app/"
         }
     },

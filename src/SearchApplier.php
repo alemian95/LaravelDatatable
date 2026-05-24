@@ -3,16 +3,22 @@
 namespace AleMian95\Datatable;
 
 use AleMian95\Datatable\Contracts\QueryApplier;
+use AleMian95\Datatable\Contracts\SearchColumnResolver;
 use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
-use Illuminate\Database\Query\Builder as QueryBuilder;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Log;
 
 class SearchApplier implements QueryApplier
 {
-    public function __construct(protected ?\Closure $customSearch = null) {}
+    /**
+     * @param  array<int, string>|null  $apiDeclaredColumns
+     */
+    public function __construct(
+        protected SearchColumnResolver $resolver,
+        protected ?\Closure $customSearch = null,
+        protected ?array $apiDeclaredColumns = null,
+    ) {}
 
     public function apply(Builder $builder, DatatableRequest $request): void
     {
@@ -26,28 +32,31 @@ class SearchApplier implements QueryApplier
             return;
         }
 
-        $searchColumns = $request->searchColumns;
-
-        if (empty($searchColumns)) {
-            $searchColumns = $this->resolveSearchColumns($builder);
-        }
+        $searchColumns = $this->resolver->resolve($builder, $request, $this->apiDeclaredColumns);
 
         if (empty($searchColumns)) {
             return;
         }
 
-        $builder->where(function ($query) use ($searchColumns, $request) {
+        $searchColumns = $this->dropUnsupportedRelationColumns($builder, $searchColumns);
+
+        if (empty($searchColumns)) {
+            return;
+        }
+
+        $builder->where(function ($query) use ($searchColumns, $request): void {
             foreach ($searchColumns as $field) {
                 if (str_contains($field, '.')) {
+                    // Safe: dropUnsupportedRelationColumns guarantees we only get
+                    // here when the underlying builder is Eloquent/Relation, so
+                    // the nested $query is too and supports orWhereHas.
                     $parts = explode('.', $field);
                     $column = array_pop($parts);
                     $relationPath = implode('.', $parts);
 
-                    if ($query instanceof EloquentBuilder || $query instanceof Relation) {
-                        $query->orWhereHas($relationPath, function ($q) use ($column, $request) {
-                            $q->whereLike($column, "%{$request->search}%");
-                        });
-                    }
+                    $query->orWhereHas($relationPath, function ($q) use ($column, $request): void {
+                        $q->whereLike($column, "%{$request->search}%");
+                    });
                 } else {
                     $query->orWhereLike($field, "%{$request->search}%");
                 }
@@ -55,57 +64,32 @@ class SearchApplier implements QueryApplier
         });
     }
 
-    protected function resolveSearchColumns(Builder $builder): array
+    /**
+     * Drops dot-notation entries when the builder cannot honor them
+     * (raw QueryBuilder doesn't support orWhereHas). Logs a warning naming the
+     * ignored columns so a misconfiguration surfaces instead of silently
+     * returning zero matches.
+     *
+     * @param  array<int, string>  $columns
+     * @return array<int, string>
+     */
+    private function dropUnsupportedRelationColumns(Builder $builder, array $columns): array
     {
-        $columns = [];
-
         if ($builder instanceof EloquentBuilder || $builder instanceof Relation) {
-            $model = $builder->getModel();
-            $table = $model->getTable();
-            $columns = Schema::getColumnListing($table);
-
-            if ($builder instanceof EloquentBuilder) {
-                $eagerLoads = $builder->getEagerLoads();
-                foreach ($eagerLoads as $relationName => $constraints) {
-                    $columns = array_merge($columns, $this->getRelationColumns($model, $relationName));
-                }
-            }
-        } elseif ($builder instanceof QueryBuilder) {
-            $table = $builder->from;
-            if (is_string($table)) {
-                $columns = Schema::getColumnListing($table);
-            }
+            return $columns;
         }
 
-        return $columns;
-    }
+        $dotted = array_values(array_filter($columns, fn (string $c): bool => str_contains($c, '.')));
 
-    protected function getRelationColumns(Model $model, string $relationName): array
-    {
-        $parts = explode('.', $relationName);
-        $currentModel = $model;
-        $columns = [];
-
-        foreach ($parts as $part) {
-            if (! method_exists($currentModel, $part)) {
-                return [];
-            }
-
-            $relation = $currentModel->$part();
-            if (! ($relation instanceof Relation)) {
-                return [];
-            }
-
-            $currentModel = $relation->getRelated();
+        if (! empty($dotted)) {
+            Log::warning(sprintf(
+                'SearchApplier ignored dot-notation columns [%s]: relation-based search is only '.
+                'supported on Eloquent builders or Relation instances, not on a raw QueryBuilder. '.
+                'Either pass the underlying Eloquent model, override the resolver, or remove the dotted entries.',
+                implode(', ', $dotted),
+            ));
         }
 
-        $relatedTable = $currentModel->getTable();
-        $tableColumns = Schema::getColumnListing($relatedTable);
-
-        foreach ($tableColumns as $column) {
-            $columns[] = "{$relationName}.{$column}";
-        }
-
-        return $columns;
+        return array_values(array_filter($columns, fn (string $c): bool => ! str_contains($c, '.')));
     }
 }
