@@ -39,10 +39,6 @@ class DefaultSearchColumnResolver implements SearchColumnResolver
                 : $this->autoSource->columns($builder);
         }
 
-        if (! empty($request->searchColumns)) {
-            return array_values($request->searchColumns);
-        }
-
         throw $this->makeException($builder);
     }
 
