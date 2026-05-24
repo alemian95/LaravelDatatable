@@ -44,14 +44,16 @@ class SearchApplier implements QueryApplier
             return;
         }
 
-        $resolved = $this->partitionAndResolve($builder, $searchColumns);
+        $baseTable = $this->baseTableFor($builder);
+        $canResolveDotted = $baseTable !== '';
+
+        $resolved = $this->partitionAndResolve($builder, $searchColumns, $canResolveDotted);
 
         if (empty($resolved['flat']) && empty($resolved['dotted'])) {
             return;
         }
 
         $term = $request->search;
-        $baseTable = $this->baseTableFor($builder);
 
         $builder->where(function (Builder $query) use ($resolved, $term, $baseTable): void {
             foreach ($resolved['flat'] as $field) {
@@ -68,15 +70,23 @@ class SearchApplier implements QueryApplier
      * @param  array<int, string>  $columns
      * @return array{flat: array<int, string>, dotted: array<int, DottedEntry>}
      */
-    private function partitionAndResolve(Builder $builder, array $columns): array
+    private function partitionAndResolve(Builder $builder, array $columns, bool $canResolveDotted): array
     {
         $flat = [];
         $dotted = [];
         $dropped = [];
+        $droppedReason = '';
 
         foreach ($columns as $col) {
             if (! str_contains($col, '.')) {
                 $flat[] = $col;
+
+                continue;
+            }
+
+            if (! $canResolveDotted) {
+                $dropped[] = $col;
+                $droppedReason = 'cannot infer base table from the builder (likely a subquery passed to from()); declare keys explicitly or rebase on a plain table';
 
                 continue;
             }
@@ -101,6 +111,9 @@ class SearchApplier implements QueryApplier
 
             if ($spec === null) {
                 $dropped[] = $col;
+                if ($droppedReason === '') {
+                    $droppedReason = 'no RelationSearch spec found for the leading segment, and the builder is not an Eloquent builder with an auto-discoverable relation method. Declare them via DatatableApi::withRelationSearch(...)';
+                }
 
                 continue;
             }
@@ -111,10 +124,9 @@ class SearchApplier implements QueryApplier
 
         if (! empty($dropped)) {
             Log::warning(sprintf(
-                'SearchApplier dropped dotted columns [%s]: no RelationSearch spec found for the leading segment, '.
-                'and the builder is not an Eloquent builder with an auto-discoverable relation method. '.
-                'Declare them via DatatableApi::withRelationSearch(...).',
+                'SearchApplier dropped dotted columns [%s]: %s.',
                 implode(', ', $dropped),
+                $droppedReason,
             ));
         }
 
@@ -124,11 +136,13 @@ class SearchApplier implements QueryApplier
     /**
      * Returns the base table name for use by RelationSearch specs.
      *
+     * Strips ' as <alias>' suffixes so default-key derivation (Str::singular($baseTable))
+     * works correctly on aliased raw queries like DB::table('users as u').
+     *
      * Returns '' when no base table can be inferred (e.g. raw QueryBuilder
      * whose `from` is a subquery expression rather than a string identifier).
-     * Callers MUST guard the empty case before handing the result to a
-     * spec — passing '' produces invalid SQL like `"x"."id" = ".".".y"`.
-     * Task 10 in the implementation plan adds this guard at the apply() level.
+     * Callers MUST guard the empty case before handing the result to a spec;
+     * apply() does this by short-circuiting all dotted processing in that case.
      */
     private function baseTableFor(Builder $builder): string
     {
@@ -141,7 +155,8 @@ class SearchApplier implements QueryApplier
         }
 
         if ($builder instanceof QueryBuilder && is_string($builder->from)) {
-            return $builder->from;
+            // Strip ' as alias' suffix — case-insensitive on the AS keyword.
+            return preg_split('/\s+as\s+/i', $builder->from, 2)[0];
         }
 
         return '';

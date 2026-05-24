@@ -294,3 +294,54 @@ it('drops a multi-hop dotted column on raw with a warning', function () {
 
     expect($builder->toSql())->toBe($beforeSql);
 });
+
+it('drops dotted columns and warns when the base table cannot be inferred (subquery from)', function () {
+    Log::shouldReceive('warning')
+        ->once()
+        ->with(Mockery::pattern('/author\.first_name.*cannot infer base table/i'));
+
+    $columnResolver = Mockery::mock(SearchColumnResolver::class);
+    $columnResolver->shouldReceive('resolve')->once()->andReturn(['first_name', 'author.first_name']);
+
+    $relationResolver = new \AleMian95\Datatable\Search\DefaultRelationSearchResolver;
+    $map = ['author' => RelationSearch::belongsTo('test_users', localKey: 'test_user_id')];
+
+    $applier = new SearchApplier($columnResolver, null, null, $relationResolver, $map);
+
+    // Build a raw query whose `from` is a subquery — not a plain string identifier.
+    $sub = DB::table('test_posts');
+    $builder = DB::query()->fromSub($sub, 't');
+
+    $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
+
+    $sql = strtolower($builder->toRawSql());
+
+    // Flat column applied; dotted columns dropped (no EXISTS, no test_users)
+    expect($sql)->toContain('"first_name" like');
+    expect($sql)->not->toContain('exists');
+    expect($sql)->not->toContain('test_users');
+});
+
+it('strips a table alias from baseTable so default-key derivation works on aliased raw queries', function () {
+    Log::shouldReceive('warning')->never();
+
+    $columnResolver = Mockery::mock(SearchColumnResolver::class);
+    $columnResolver->shouldReceive('resolve')->once()->andReturn(['posts.title']);
+
+    $relationResolver = new \AleMian95\Datatable\Search\DefaultRelationSearchResolver;
+    // hasOne defaults: foreignKey = Str::singular($baseTable) . '_id'. If $baseTable
+    // arrived as 'test_users as u', singularization would yield 'test_users as u_id' —
+    // a malformed identifier. The applier must strip the alias before passing it.
+    $map = ['posts' => RelationSearch::hasOne('test_posts', foreignKey: 'test_user_id')];
+
+    $applier = new SearchApplier($columnResolver, null, null, $relationResolver, $map);
+    $builder = DB::table('test_users as u');
+
+    $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
+
+    $sql = strtolower($builder->toRawSql());
+
+    expect($sql)
+        ->toContain('"test_posts"."test_user_id" = "test_users"."id"')
+        ->toContain('"test_posts"."title"');
+});
