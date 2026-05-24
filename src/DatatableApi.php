@@ -3,7 +3,9 @@
 namespace AleMian95\Datatable;
 
 use AleMian95\Datatable\Contracts\QueryApplier;
+use AleMian95\Datatable\Contracts\RelationSearchResolver;
 use AleMian95\Datatable\Contracts\SearchColumnResolver;
+use AleMian95\Datatable\Search\RelationSearch;
 use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Support\Facades\Log;
 use JsonSerializable;
@@ -25,7 +27,7 @@ class DatatableApi implements JsonSerializable
     /** @var array<int, string>|null */
     protected ?array $apiDeclaredSearchColumns = null;
 
-    /** @var array<string, \AleMian95\Datatable\Search\RelationSearch> */
+    /** @var array<string, RelationSearch> */
     protected array $relationSearchMap = [];
 
     protected bool $hasResource = false;
@@ -72,7 +74,7 @@ class DatatableApi implements JsonSerializable
      * Declare per-relation search specs used when a search_columns entry contains a dot
      * (e.g. 'author.name'). Required for raw QueryBuilder; optional override on Eloquent.
      *
-     * @param  array<string, \AleMian95\Datatable\Search\RelationSearch>  $map
+     * @param  array<string, RelationSearch>  $map
      * @return $this
      */
     public function withRelationSearch(array $map): self
@@ -133,7 +135,7 @@ class DatatableApi implements JsonSerializable
                 app(SearchColumnResolver::class),
                 $this->customSearch,
                 $this->apiDeclaredSearchColumns,
-                app(\AleMian95\Datatable\Contracts\RelationSearchResolver::class),
+                app(RelationSearchResolver::class),
                 $this->relationSearchMap,
             ),
             new SortApplier($this->customSorts),

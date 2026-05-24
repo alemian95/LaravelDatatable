@@ -77,13 +77,11 @@ it('hasOne respects custom foreignKey and localKey', function () {
 
 it('hasMany produces the same SQL shape as hasOne', function () {
     $hasOneQuery = DB::table('users');
-    $hasOneQuery->where(fn ($q) =>
-        RelationSearch::hasOne('posts')->apply($q, 'users', 'title', 'jane')
+    $hasOneQuery->where(fn ($q) => RelationSearch::hasOne('posts')->apply($q, 'users', 'title', 'jane')
     );
 
     $hasManyQuery = DB::table('users');
-    $hasManyQuery->where(fn ($q) =>
-        RelationSearch::hasMany('posts')->apply($q, 'users', 'title', 'jane')
+    $hasManyQuery->where(fn ($q) => RelationSearch::hasMany('posts')->apply($q, 'users', 'title', 'jane')
     );
 
     expect($hasManyQuery->toRawSql())->toBe($hasOneQuery->toRawSql());

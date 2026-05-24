@@ -17,14 +17,12 @@ final class RelationSearch
         ?string $localKey = null,
         string $remoteKey = 'id',
     ): self {
-        $localKey ??= Str::singular($table) . '_id';
+        $localKey ??= Str::singular($table).'_id';
 
-        return new self(function (Builder $query, string $baseTable, string $remoteColumn, string $term)
-            use ($table, $localKey, $remoteKey): void {
-            $query->orWhereExists(fn (QueryBuilder $sub) =>
-                $sub->from($table)
-                    ->whereColumn("{$table}.{$remoteKey}", "{$baseTable}.{$localKey}")
-                    ->whereLike("{$table}.{$remoteColumn}", "%{$term}%")
+        return new self(function (Builder $query, string $baseTable, string $remoteColumn, string $term) use ($table, $localKey, $remoteKey): void {
+            $query->orWhereExists(fn (QueryBuilder $sub) => $sub->from($table)
+                ->whereColumn("{$table}.{$remoteKey}", "{$baseTable}.{$localKey}")
+                ->whereLike("{$table}.{$remoteColumn}", "%{$term}%")
             );
         });
     }
@@ -34,14 +32,12 @@ final class RelationSearch
         ?string $foreignKey = null,
         string $localKey = 'id',
     ): self {
-        return new self(function (Builder $query, string $baseTable, string $remoteColumn, string $term)
-            use ($table, $foreignKey, $localKey): void {
-            $foreignKey ??= Str::singular($baseTable) . '_id';
+        return new self(function (Builder $query, string $baseTable, string $remoteColumn, string $term) use ($table, $foreignKey, $localKey): void {
+            $foreignKey ??= Str::singular($baseTable).'_id';
 
-            $query->orWhereExists(fn (QueryBuilder $sub) =>
-                $sub->from($table)
-                    ->whereColumn("{$table}.{$foreignKey}", "{$baseTable}.{$localKey}")
-                    ->whereLike("{$table}.{$remoteColumn}", "%{$term}%")
+            $query->orWhereExists(fn (QueryBuilder $sub) => $sub->from($table)
+                ->whereColumn("{$table}.{$foreignKey}", "{$baseTable}.{$localKey}")
+                ->whereLike("{$table}.{$remoteColumn}", "%{$term}%")
             );
         });
     }
@@ -67,25 +63,22 @@ final class RelationSearch
         string $parentKey = 'id',
         string $relatedKey = 'id',
     ): self {
-        $relatedPivotKey ??= Str::singular($table) . '_id';
+        $relatedPivotKey ??= Str::singular($table).'_id';
 
-        return new self(function (Builder $query, string $baseTable, string $remoteColumn, string $term)
-            use ($table, $pivot, $foreignPivotKey, $relatedPivotKey, $parentKey, $relatedKey): void {
-            $foreignPivotKey ??= Str::singular($baseTable) . '_id';
+        return new self(function (Builder $query, string $baseTable, string $remoteColumn, string $term) use ($table, $pivot, $foreignPivotKey, $relatedPivotKey, $parentKey, $relatedKey): void {
+            $foreignPivotKey ??= Str::singular($baseTable).'_id';
 
-            $query->orWhereExists(fn (QueryBuilder $sub) =>
-                $sub->from($table)
-                    ->join($pivot, "{$pivot}.{$relatedPivotKey}", '=', "{$table}.{$relatedKey}")
-                    ->whereColumn("{$pivot}.{$foreignPivotKey}", "{$baseTable}.{$parentKey}")
-                    ->whereLike("{$table}.{$remoteColumn}", "%{$term}%")
+            $query->orWhereExists(fn (QueryBuilder $sub) => $sub->from($table)
+                ->join($pivot, "{$pivot}.{$relatedPivotKey}", '=', "{$table}.{$relatedKey}")
+                ->whereColumn("{$pivot}.{$foreignPivotKey}", "{$baseTable}.{$parentKey}")
+                ->whereLike("{$table}.{$remoteColumn}", "%{$term}%")
             );
         });
     }
 
     public static function custom(\Closure $resolver): self
     {
-        return new self(fn (Builder $query, string $baseTable, string $remoteColumn, string $term)
-            => $resolver($query, $remoteColumn, $term));
+        return new self(fn (Builder $query, string $baseTable, string $remoteColumn, string $term) => $resolver($query, $remoteColumn, $term));
     }
 
     public function apply(Builder $query, string $baseTable, string $remoteColumn, string $term): void

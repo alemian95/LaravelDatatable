@@ -2,9 +2,9 @@
 
 use AleMian95\Datatable\Concerns\HasSearchableColumns as HasSearchableColumnsTrait;
 use AleMian95\Datatable\Contracts\HasSearchableColumns;
-use AleMian95\Datatable\Contracts\RelationSearchResolver;
 use AleMian95\Datatable\Contracts\SearchColumnResolver;
 use AleMian95\Datatable\DatatableRequest;
+use AleMian95\Datatable\Search\DefaultRelationSearchResolver;
 use AleMian95\Datatable\Search\RelationSearch;
 use AleMian95\Datatable\SearchApplier;
 use AleMian95\Datatable\Tests\Fixtures\Models\TestPost;
@@ -138,7 +138,7 @@ it('processes dotted entries normally on an Eloquent builder without logging a w
     $resolver = Mockery::mock(SearchColumnResolver::class);
     $resolver->shouldReceive('resolve')->once()->andReturn(['first_name', 'posts.title']);
 
-    $relationResolver = new \AleMian95\Datatable\Search\DefaultRelationSearchResolver;
+    $relationResolver = new DefaultRelationSearchResolver;
 
     $applier = new SearchApplier($resolver, null, null, $relationResolver, []);
     $builder = ApplierSearchableUser::query();
@@ -157,7 +157,7 @@ it('emits orWhereExists for a single-hop dotted column on raw with a declared sp
     $columnResolver = Mockery::mock(SearchColumnResolver::class);
     $columnResolver->shouldReceive('resolve')->once()->andReturn(['author.first_name']);
 
-    $relationResolver = new \AleMian95\Datatable\Search\DefaultRelationSearchResolver;
+    $relationResolver = new DefaultRelationSearchResolver;
     $map = ['author' => RelationSearch::belongsTo('test_users', localKey: 'test_user_id')];
 
     $applier = new SearchApplier($columnResolver, null, null, $relationResolver, $map);
@@ -182,7 +182,7 @@ it('drops a single-hop dotted column on raw when no declared spec is available',
     $columnResolver = Mockery::mock(SearchColumnResolver::class);
     $columnResolver->shouldReceive('resolve')->once()->andReturn(['author.first_name']);
 
-    $relationResolver = new \AleMian95\Datatable\Search\DefaultRelationSearchResolver;
+    $relationResolver = new DefaultRelationSearchResolver;
 
     $applier = new SearchApplier($columnResolver, null, null, $relationResolver, []);
     $builder = DB::table('test_posts');
@@ -199,7 +199,7 @@ it('emits orWhereExists for a single-hop dotted column on Eloquent via auto-disc
     $columnResolver = Mockery::mock(SearchColumnResolver::class);
     $columnResolver->shouldReceive('resolve')->once()->andReturn(['author.first_name']);
 
-    $relationResolver = new \AleMian95\Datatable\Search\DefaultRelationSearchResolver;
+    $relationResolver = new DefaultRelationSearchResolver;
 
     $applier = new SearchApplier($columnResolver, null, null, $relationResolver, []);
     $builder = TestPost::query();
@@ -218,7 +218,7 @@ it('declared map overrides Eloquent auto-discovery for the same relation key', f
     $columnResolver = Mockery::mock(SearchColumnResolver::class);
     $columnResolver->shouldReceive('resolve')->once()->andReturn(['author.first_name']);
 
-    $relationResolver = new \AleMian95\Datatable\Search\DefaultRelationSearchResolver;
+    $relationResolver = new DefaultRelationSearchResolver;
     $overrideMarker = RelationSearch::custom(function ($query, $remoteColumn, $term) {
         $query->orWhere('manual_marker', '=', "{$remoteColumn}:{$term}");
     });
@@ -237,7 +237,7 @@ it('combines a flat column and a single-hop dotted column in one nested WHERE', 
     $columnResolver = Mockery::mock(SearchColumnResolver::class);
     $columnResolver->shouldReceive('resolve')->once()->andReturn(['title', 'author.first_name']);
 
-    $relationResolver = new \AleMian95\Datatable\Search\DefaultRelationSearchResolver;
+    $relationResolver = new DefaultRelationSearchResolver;
 
     $applier = new SearchApplier($columnResolver, null, null, $relationResolver, []);
     $builder = TestPost::query();
@@ -258,7 +258,7 @@ it('preserves the legacy orWhereHas path for multi-hop Eloquent without a declar
     $columnResolver = Mockery::mock(SearchColumnResolver::class);
     $columnResolver->shouldReceive('resolve')->once()->andReturn(['author.posts.title']);
 
-    $relationResolver = new \AleMian95\Datatable\Search\DefaultRelationSearchResolver;
+    $relationResolver = new DefaultRelationSearchResolver;
 
     $applier = new SearchApplier($columnResolver, null, null, $relationResolver, []);
     $builder = TestPost::query();
@@ -284,7 +284,7 @@ it('drops a multi-hop dotted column on raw with a warning', function () {
     $columnResolver = Mockery::mock(SearchColumnResolver::class);
     $columnResolver->shouldReceive('resolve')->once()->andReturn(['author.posts.title']);
 
-    $relationResolver = new \AleMian95\Datatable\Search\DefaultRelationSearchResolver;
+    $relationResolver = new DefaultRelationSearchResolver;
 
     $applier = new SearchApplier($columnResolver, null, null, $relationResolver, []);
     $builder = DB::table('test_posts');
@@ -303,7 +303,7 @@ it('drops dotted columns and warns when the base table cannot be inferred (subqu
     $columnResolver = Mockery::mock(SearchColumnResolver::class);
     $columnResolver->shouldReceive('resolve')->once()->andReturn(['first_name', 'author.first_name']);
 
-    $relationResolver = new \AleMian95\Datatable\Search\DefaultRelationSearchResolver;
+    $relationResolver = new DefaultRelationSearchResolver;
     $map = ['author' => RelationSearch::belongsTo('test_users', localKey: 'test_user_id')];
 
     $applier = new SearchApplier($columnResolver, null, null, $relationResolver, $map);
@@ -328,7 +328,7 @@ it('strips a table alias from baseTable so default-key derivation works on alias
     $columnResolver = Mockery::mock(SearchColumnResolver::class);
     $columnResolver->shouldReceive('resolve')->once()->andReturn(['posts.title']);
 
-    $relationResolver = new \AleMian95\Datatable\Search\DefaultRelationSearchResolver;
+    $relationResolver = new DefaultRelationSearchResolver;
     // hasOne defaults: foreignKey = Str::singular($baseTable) . '_id'. If $baseTable
     // arrived as 'test_users as u', singularization would yield 'test_users as u_id' —
     // a malformed identifier. The applier must strip the alias before passing it.
@@ -354,7 +354,7 @@ it('drops a multi-hop dotted column on raw even when a single-segment spec is de
     $columnResolver = Mockery::mock(SearchColumnResolver::class);
     $columnResolver->shouldReceive('resolve')->once()->andReturn(['author.posts.title']);
 
-    $relationResolver = new \AleMian95\Datatable\Search\DefaultRelationSearchResolver;
+    $relationResolver = new DefaultRelationSearchResolver;
     $map = ['author' => RelationSearch::belongsTo('test_users', localKey: 'test_user_id')];
 
     $applier = new SearchApplier($columnResolver, null, null, $relationResolver, $map);

@@ -40,17 +40,17 @@ class DefaultRelationSearchResolver implements Contract
         }
 
         return match (true) {
-            $relation instanceof BelongsTo     => RelationSearch::belongsTo(
+            $relation instanceof BelongsTo => RelationSearch::belongsTo(
                 table: $relation->getRelated()->getTable(),
                 localKey: $relation->getForeignKeyName(),
                 remoteKey: $relation->getOwnerKeyName(),
             ),
-            $relation instanceof HasOne        => RelationSearch::hasOne(
+            $relation instanceof HasOne => RelationSearch::hasOne(
                 table: $relation->getRelated()->getTable(),
                 foreignKey: $relation->getForeignKeyName(),
                 localKey: $relation->getLocalKeyName(),
             ),
-            $relation instanceof HasMany       => RelationSearch::hasMany(
+            $relation instanceof HasMany => RelationSearch::hasMany(
                 table: $relation->getRelated()->getTable(),
                 foreignKey: $relation->getForeignKeyName(),
                 localKey: $relation->getLocalKeyName(),
@@ -63,7 +63,7 @@ class DefaultRelationSearchResolver implements Contract
                 parentKey: $relation->getParentKeyName(),
                 relatedKey: $relation->getRelatedKeyName(),
             ),
-            default                            => null,
+            default => null,
         };
     }
 }
