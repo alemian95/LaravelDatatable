@@ -2,7 +2,9 @@
 
 namespace AleMian95\Datatable;
 
+use AleMian95\Datatable\Contracts\RelationSearchResolver;
 use AleMian95\Datatable\Contracts\SearchColumnResolver;
+use AleMian95\Datatable\Search\DefaultRelationSearchResolver;
 use AleMian95\Datatable\Search\DefaultSearchColumnResolver;
 use AleMian95\Datatable\Search\Sources\ApiDeclaredColumnSource;
 use AleMian95\Datatable\Search\Sources\AutoDiscoveryColumnSource;
@@ -36,5 +38,10 @@ class DatatableServiceProvider extends PackageServiceProvider
                 (bool) ($config['auto_discover_columns'] ?? true),
             );
         });
+
+        $this->app->scoped(
+            RelationSearchResolver::class,
+            fn () => new DefaultRelationSearchResolver,
+        );
     }
 }

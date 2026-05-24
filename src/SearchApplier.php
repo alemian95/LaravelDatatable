@@ -3,7 +3,9 @@
 namespace AleMian95\Datatable;
 
 use AleMian95\Datatable\Contracts\QueryApplier;
+use AleMian95\Datatable\Contracts\RelationSearchResolver;
 use AleMian95\Datatable\Contracts\SearchColumnResolver;
+use AleMian95\Datatable\Search\RelationSearch;
 use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -13,11 +15,14 @@ class SearchApplier implements QueryApplier
 {
     /**
      * @param  array<int, string>|null  $apiDeclaredColumns
+     * @param  array<string, RelationSearch>  $relationSearchMap
      */
     public function __construct(
         protected SearchColumnResolver $resolver,
         protected ?\Closure $customSearch = null,
         protected ?array $apiDeclaredColumns = null,
+        protected ?RelationSearchResolver $relationResolver = null,
+        protected array $relationSearchMap = [],
     ) {}
 
     public function apply(Builder $builder, DatatableRequest $request): void
