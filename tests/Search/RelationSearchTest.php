@@ -146,3 +146,39 @@ it('belongsToMany respects custom parentKey and relatedKey', function () {
         ->toContain('"role_user"."role_id" = "roles"."slug"')
         ->toContain('"role_user"."user_id" = "users"."uuid"');
 });
+
+it('custom invokes the user closure with 3 args (query, remoteColumn, term)', function () {
+    $received = null;
+    $spec = RelationSearch::custom(function (...$args) use (&$received) {
+        $received = $args;
+    });
+
+    $query = DB::table('books');
+    $spec->apply($query, 'books', 'name', 'jane');
+
+    expect($received)->toHaveCount(3);
+    expect($received[1])->toBe('name');
+    expect($received[2])->toBe('jane');
+});
+
+it('custom does not pass baseTable to the user closure', function () {
+    $argCount = null;
+    $spec = RelationSearch::custom(function ($query, $remoteColumn, $term) use (&$argCount) {
+        $argCount = func_num_args();
+    });
+
+    $spec->apply(DB::table('books'), 'books', 'name', 'jane');
+
+    expect($argCount)->toBe(3);
+});
+
+it('custom allows the user closure to mutate the query freely', function () {
+    $spec = RelationSearch::custom(function ($query, $remoteColumn, $term) {
+        $query->orWhere('static_marker', 'set-by-custom');
+    });
+
+    $query = DB::table('books');
+    $query->where(fn ($q) => $spec->apply($q, 'books', 'name', 'jane'));
+
+    expect($query->toRawSql())->toContain("'set-by-custom'");
+});

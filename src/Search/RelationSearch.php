@@ -77,6 +77,12 @@ final class RelationSearch
         });
     }
 
+    public static function custom(\Closure $resolver): self
+    {
+        return new self(fn (Builder $query, string $baseTable, string $remoteColumn, string $term)
+            => $resolver($query, $remoteColumn, $term));
+    }
+
     public function apply(Builder $query, string $baseTable, string $remoteColumn, string $term): void
     {
         ($this->applier)($query, $baseTable, $remoteColumn, $term);
