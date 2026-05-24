@@ -7,6 +7,7 @@ use AleMian95\Datatable\DatatableRequest;
 use AleMian95\Datatable\SearchApplier;
 use AleMian95\Datatable\Tests\Fixtures\Models\TestUser;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ApplierSearchableUser extends TestUser implements HasSearchableColumns
 {
@@ -92,4 +93,53 @@ it('passes the apiDeclaredColumns through to the resolver', function () {
     $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
 
     expect(true)->toBeTrue(); // assertion is in the mock expectations
+});
+
+it('logs a warning and drops dotted entries when the builder is a raw QueryBuilder', function () {
+    Log::shouldReceive('warning')
+        ->once()
+        ->with(Mockery::pattern('/ignored dot-notation columns \[posts\.title\]/'));
+
+    $resolver = Mockery::mock(SearchColumnResolver::class);
+    $resolver->shouldReceive('resolve')->once()->andReturn(['first_name', 'posts.title']);
+
+    $applier = new SearchApplier($resolver);
+    $builder = \Illuminate\Support\Facades\DB::table('test_users');
+
+    $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
+
+    $sql = strtolower($builder->toSql());
+    expect($sql)->toContain('"first_name"');
+    expect($sql)->not->toContain('posts');
+});
+
+it('skips the WHERE clause entirely when every resolved column is dotted on a raw QueryBuilder', function () {
+    Log::shouldReceive('warning')->once();
+
+    $resolver = Mockery::mock(SearchColumnResolver::class);
+    $resolver->shouldReceive('resolve')->once()->andReturn(['posts.title', 'comments.body']);
+
+    $applier = new SearchApplier($resolver);
+    $builder = \Illuminate\Support\Facades\DB::table('test_users');
+
+    $beforeSql = $builder->toSql();
+    $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
+
+    expect($builder->toSql())->toBe($beforeSql);
+});
+
+it('processes dotted entries normally on an Eloquent builder without logging a warning', function () {
+    Log::shouldReceive('warning')->never();
+
+    $resolver = Mockery::mock(SearchColumnResolver::class);
+    $resolver->shouldReceive('resolve')->once()->andReturn(['first_name', 'posts.title']);
+
+    $applier = new SearchApplier($resolver);
+    $builder = ApplierSearchableUser::query();
+
+    $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
+
+    $sql = strtolower($builder->toSql());
+    expect($sql)->toContain('"first_name"');
+    expect($sql)->toContain('"test_posts"'); // orWhereHas generates an EXISTS on test_posts
 });

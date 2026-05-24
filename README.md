@@ -197,7 +197,7 @@ public function index()
 
    **Resolver lifecycle.** The `SearchColumnResolver` is bound to the container as a `scoped` instance, so each HTTP request / queue job receives a fresh resolver built from the current `laraveldatatable.search.*` values. This means multi-tenant setups that swap the config per request get the expected per-tenant behavior with no extra work. For the rare case of changing the config mid-request (e.g. inside tests), call `app()->forgetInstance(\AleMian95\Datatable\Contracts\SearchColumnResolver::class)` after the change to force re-resolution.
 
-2. **Dot-notation search.** `search_columns=author.name` triggers `orWhereHas('author', fn ($q) => $q->whereLike('name', '%term%'))`. Works only on Eloquent builders / `Relation` instances; on a raw `QueryBuilder` the dotted entries are ignored.
+2. **Dot-notation search.** `search_columns=author.name` triggers `orWhereHas('author', fn ($q) => $q->whereLike('name', '%term%'))`. Works only on Eloquent builders / `Relation` instances; on a raw `QueryBuilder` the dotted entries are dropped and a `Log::warning` is emitted naming the ignored columns — useful when a query unexpectedly returns zero matches.
 
 3. **Relational sorting supports `BelongsTo` only.** For `sort_by=author.name`, `SortApplier` performs a `leftJoin` on each `BelongsTo` segment and then orders by the joined column. For any other relation type (or any segment that is not a `BelongsTo`) it falls back to a plain `orderBy('author.name', ...)`, which will fail at the SQL layer because that column does not exist on the base table. Either expose such sorts via `withCustomSorts(...)` or restrict the client to `BelongsTo` paths.
 
