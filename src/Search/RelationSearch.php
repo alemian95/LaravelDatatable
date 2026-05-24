@@ -29,6 +29,31 @@ final class RelationSearch
         });
     }
 
+    public static function hasOne(
+        string $table,
+        ?string $foreignKey = null,
+        string $localKey = 'id',
+    ): self {
+        return new self(function (Builder $query, string $baseTable, string $remoteColumn, string $term)
+            use ($table, $foreignKey, $localKey): void {
+            $foreignKey ??= Str::singular($baseTable) . '_id';
+
+            $query->orWhereExists(fn (QueryBuilder $sub) =>
+                $sub->from($table)
+                    ->whereColumn("{$table}.{$foreignKey}", "{$baseTable}.{$localKey}")
+                    ->whereLike("{$table}.{$remoteColumn}", "%{$term}%")
+            );
+        });
+    }
+
+    public static function hasMany(
+        string $table,
+        ?string $foreignKey = null,
+        string $localKey = 'id',
+    ): self {
+        return self::hasOne($table, $foreignKey, $localKey);
+    }
+
     public function apply(Builder $query, string $baseTable, string $remoteColumn, string $term): void
     {
         ($this->applier)($query, $baseTable, $remoteColumn, $term);
