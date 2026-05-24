@@ -41,7 +41,7 @@ Il comportamento era documentato nel README come limite ma restava **default att
 
 ## 4. Regole di decisione
 
-La regola unica che governa la risoluzione delle colonne ricercabili. Le sorgenti distinguono `null` ("nessuna opinione, prova la prossima") da `[]` ("whitelist autoritativa vuota — blocca la search").
+La regola unica che governa la risoluzione delle colonne ricercabili. Le sorgenti distinguono `null` ("nessuna opinione, prova la prossima") da `[]` ("whitelist autoritativa vuota — omette la clausola di search").
 
 ```
 Whitelist autoritativa = primo non-null tra:
@@ -356,8 +356,8 @@ Suite coperta dal `tests/` finale (49 test totali, 90 asserzioni):
   - intersezione vuota → nessuna search applicata;
   - nessuna whitelist + auto-discovery ON → usa `AutoDiscoveryColumnSource`, con intersezione se request presente;
   - nessuna whitelist + auto-discovery OFF → lancia `SearchColumnsNotConfiguredException` (anche se request ha `search_columns`);
-  - whitelist autoritativa vuota da API blocca la search;
-  - whitelist autoritativa vuota da Model blocca la search;
+  - whitelist autoritativa vuota da API omette la clausola di search;
+  - whitelist autoritativa vuota da Model omette la clausola di search;
   - intersezione con auto-discovery droppa colonne blacklisted dalla request;
   - intersezione con auto-discovery droppa colonne non-string dalla request.
 
@@ -403,7 +403,7 @@ Suite coperta dal `tests/` finale (49 test totali, 90 asserzioni):
   - supporto raw `QueryBuilder` via `withSearchableColumns()`;
   - throw se nessuna whitelist e auto-discovery off;
   - uso auto-discovery se nessuna whitelist e flag on;
-  - `withSearchableColumns([])` blocca la search end-to-end;
+  - `withSearchableColumns([])` omette la clausola di search end-to-end;
   - drop blacklisted columns end-to-end via auto-discovery.
 
 Setup test: SQLite in-memory configurato nel package (`composer test`), con fixtures `TestUser`/`TestPost` e migrazioni in `tests/Database/Migrations/`.
@@ -427,5 +427,5 @@ Cambi applicati a questo design durante l'iterazione post-implementazione (final
 4. **Inclusione di `uuid`/`guid`** in `SEARCHABLE_TYPES`. Senza, le colonne `$table->uuid()` venivano silenziosamente escluse su MySQL/Postgres.
 5. **Defensive stripping di ` as alias`** nei segmenti dei nomi relation eager-loaded, sia per la risoluzione del method sia per il prefisso colonna emesso. Stock Laravel non emette tali chiavi, ma il guard previene drop silenziosi e output incoerenti se future versioni o constraint string anomale dovessero produrli.
 6. **Binding `scoped` invece di `singleton`** per `SearchColumnResolver` nel service provider. Multi-tenant friendly + Octane-safe.
-7. **Warning nel trait** quando `$searchable` è assente o di tipo errato (typo come `$searchabel`). Diagnostica importante dato che con la nuova semantica `[]` blocca la search.
+7. **Warning nel trait** quando `$searchable` è assente o di tipo errato (typo come `$searchabel`). Diagnostica importante dato che con la nuova semantica `[]` omette la clausola di search.
 8. **Warning nel `SearchApplier`** quando entries dot-notation vengono droppate su raw `QueryBuilder`. Sostituisce il silent drop precedente che produceva zero match senza diagnostica.

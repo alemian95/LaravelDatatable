@@ -12,8 +12,10 @@ class ModelDeclaredColumnSource
     /**
      * Returns the model's declared whitelist, or null if the builder is not
      * Eloquent or the model does not implement HasSearchableColumns. An empty
-     * array returned by getSearchableColumns() is treated as a deliberate
-     * "block the search" signal and is propagated as such.
+     * array returned by getSearchableColumns() is treated as an authoritative
+     * signal to omit the search clause (no LIKE applied, dataset returned
+     * unfiltered by the search term) and is propagated as such, not collapsed
+     * to null.
      *
      * @return array<int, string>|null
      */
