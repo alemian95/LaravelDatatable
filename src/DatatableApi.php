@@ -3,6 +3,7 @@
 namespace AleMian95\Datatable;
 
 use AleMian95\Datatable\Contracts\QueryApplier;
+use AleMian95\Datatable\Contracts\SearchColumnResolver;
 use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Support\Facades\Log;
 use JsonSerializable;
@@ -112,7 +113,7 @@ class DatatableApi implements JsonSerializable
     {
         $appliers = [
             new SearchApplier(
-                app(\AleMian95\Datatable\Contracts\SearchColumnResolver::class),
+                app(SearchColumnResolver::class),
                 $this->customSearch,
                 $this->apiDeclaredSearchColumns,
             ),

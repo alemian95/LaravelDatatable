@@ -45,7 +45,7 @@ class TraitTestUserWithWrongType extends TestUser implements HasSearchableColumn
 it('returns the declared columns when the property is a non-empty array', function () {
     Log::shouldReceive('warning')->never();
 
-    $model = new TraitTestUserWithProperty();
+    $model = new TraitTestUserWithProperty;
 
     expect($model->getSearchableColumns())->toBe(['first_name', 'email']);
 });
@@ -53,7 +53,7 @@ it('returns the declared columns when the property is a non-empty array', functi
 it('returns an empty array WITHOUT warning when the property is a deliberate empty array', function () {
     Log::shouldReceive('warning')->never();
 
-    $model = new TraitTestUserWithEmptyProperty();
+    $model = new TraitTestUserWithEmptyProperty;
 
     expect($model->getSearchableColumns())->toBe([]);
 });
@@ -63,7 +63,7 @@ it('logs a warning and returns empty when the $searchable property is missing', 
         ->once()
         ->with(Mockery::pattern('/does not define a \$searchable property/'));
 
-    $model = new TraitTestUserWithoutProperty();
+    $model = new TraitTestUserWithoutProperty;
 
     expect($model->getSearchableColumns())->toBe([]);
 });
@@ -73,7 +73,7 @@ it('logs a warning and returns empty when the $searchable property has the wrong
         ->once()
         ->with(Mockery::pattern('/must be an array, got string/'));
 
-    $model = new TraitTestUserWithWrongType();
+    $model = new TraitTestUserWithWrongType;
 
     expect($model->getSearchableColumns())->toBe([]);
 });

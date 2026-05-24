@@ -12,7 +12,7 @@ interface SearchColumnResolver
      * Resolve the effective list of columns to search on.
      *
      * @param  array<int, string>|null  $apiDeclaredColumns  Columns passed via DatatableApi::withSearchableColumns()
-     * @return array<int, string>  Empty array means: do not apply any search clause.
+     * @return array<int, string> Empty array means: do not apply any search clause.
      *
      * @throws SearchColumnsNotConfiguredException
      */

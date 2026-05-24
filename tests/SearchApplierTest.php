@@ -7,6 +7,7 @@ use AleMian95\Datatable\DatatableRequest;
 use AleMian95\Datatable\SearchApplier;
 use AleMian95\Datatable\Tests\Fixtures\Models\TestUser;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class ApplierSearchableUser extends TestUser implements HasSearchableColumns
@@ -104,7 +105,7 @@ it('logs a warning and drops dotted entries when the builder is a raw QueryBuild
     $resolver->shouldReceive('resolve')->once()->andReturn(['first_name', 'posts.title']);
 
     $applier = new SearchApplier($resolver);
-    $builder = \Illuminate\Support\Facades\DB::table('test_users');
+    $builder = DB::table('test_users');
 
     $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
 
@@ -120,7 +121,7 @@ it('skips the WHERE clause entirely when every resolved column is dotted on a ra
     $resolver->shouldReceive('resolve')->once()->andReturn(['posts.title', 'comments.body']);
 
     $applier = new SearchApplier($resolver);
-    $builder = \Illuminate\Support\Facades\DB::table('test_users');
+    $builder = DB::table('test_users');
 
     $beforeSql = $builder->toSql();
     $applier->apply($builder, makeApplierRequest(['search' => 'jane']));

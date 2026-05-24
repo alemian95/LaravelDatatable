@@ -10,6 +10,7 @@ use AleMian95\Datatable\Search\Sources\AutoDiscoveryColumnSource;
 use AleMian95\Datatable\Search\Sources\ModelDeclaredColumnSource;
 use AleMian95\Datatable\Tests\Fixtures\Models\TestUser;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ResolverSearchableUser extends TestUser implements HasSearchableColumns
 {
@@ -23,8 +24,8 @@ class ResolverSearchableUser extends TestUser implements HasSearchableColumns
 function makeResolver(bool $autoDiscover = true, array $blacklist = []): DefaultSearchColumnResolver
 {
     return new DefaultSearchColumnResolver(
-        new ApiDeclaredColumnSource(),
-        new ModelDeclaredColumnSource(),
+        new ApiDeclaredColumnSource,
+        new ModelDeclaredColumnSource,
         new AutoDiscoveryColumnSource($blacklist),
         $autoDiscover,
     );
@@ -115,7 +116,7 @@ it('throws when no whitelist exists and auto-discovery is off (model case)', fun
 
 it('throws when no whitelist exists and auto-discovery is off (raw QueryBuilder case)', function () {
     $resolver = makeResolver(autoDiscover: false);
-    $builder = \Illuminate\Support\Facades\DB::table('test_users');
+    $builder = DB::table('test_users');
 
     $resolver->resolve($builder, makeRequest(), null);
 })->throws(SearchColumnsNotConfiguredException::class);
@@ -148,8 +149,9 @@ it('blocks the search when the API source returns an authoritative empty whiteli
 it('blocks the search when the Model source returns an authoritative empty whitelist', function () {
     // A model that implements HasSearchableColumns but returns [] is asking
     // explicitly for the search to be blocked, not to fall back to auto-discovery.
-    $emptyModel = new class extends \AleMian95\Datatable\Tests\Fixtures\Models\TestUser implements \AleMian95\Datatable\Contracts\HasSearchableColumns {
-        use \AleMian95\Datatable\Concerns\HasSearchableColumns;
+    $emptyModel = new class extends TestUser implements HasSearchableColumns
+    {
+        use HasSearchableColumnsTrait;
 
         protected $table = 'test_users';
 

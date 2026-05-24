@@ -2,6 +2,7 @@
 
 namespace AleMian95\Datatable\Exceptions;
 
+use AleMian95\Datatable\Contracts\HasSearchableColumns;
 use LogicException;
 
 class SearchColumnsNotConfiguredException extends LogicException
@@ -14,7 +15,7 @@ class SearchColumnsNotConfiguredException extends LogicException
             .'on the DatatableApi instance, or enable auto_discover_columns in '
             .'config/laraveldatatable.php.',
             $modelClass,
-            \AleMian95\Datatable\Contracts\HasSearchableColumns::class,
+            HasSearchableColumns::class,
         ));
     }
 

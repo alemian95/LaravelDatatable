@@ -48,7 +48,7 @@ class DefaultSearchColumnResolver implements SearchColumnResolver
 
     /**
      * @param  array<int, string>|null  $apiDeclaredColumns
-     * @return array<int, string>|null  Null means: no whitelist source produced anything.
+     * @return array<int, string>|null Null means: no whitelist source produced anything.
      */
     private function resolveWhitelist(Builder $builder, ?array $apiDeclaredColumns): ?array
     {

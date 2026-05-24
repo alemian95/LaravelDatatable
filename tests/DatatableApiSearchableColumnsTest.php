@@ -2,6 +2,7 @@
 
 use AleMian95\Datatable\Concerns\HasSearchableColumns as HasSearchableColumnsTrait;
 use AleMian95\Datatable\Contracts\HasSearchableColumns;
+use AleMian95\Datatable\Contracts\SearchColumnResolver;
 use AleMian95\Datatable\DatatableApi;
 use AleMian95\Datatable\Exceptions\SearchColumnsNotConfiguredException;
 use AleMian95\Datatable\Tests\Fixtures\Models\TestUser;
@@ -32,7 +33,7 @@ function bindRequest(array $params): void
 it('returns matches from the model whitelist when the request omits search_columns', function () {
     bindRequest(['search' => 'jane']);
 
-    $result = (new DatatableApi())->fromQuery(IntegrationSearchableUser::query())->jsonSerialize();
+    $result = (new DatatableApi)->fromQuery(IntegrationSearchableUser::query())->jsonSerialize();
 
     expect($result)->toBeInstanceOf(LengthAwarePaginator::class);
     // "jane" matches first_name="Jane" and first_name="Janet" and email containing "jane"
@@ -43,7 +44,7 @@ it('drops unauthorized columns from request.search_columns', function () {
     // The client tries to search on password, which is not in the whitelist.
     bindRequest(['search' => 'secret', 'search_columns' => 'password']);
 
-    $result = (new DatatableApi())->fromQuery(IntegrationSearchableUser::query())->jsonSerialize();
+    $result = (new DatatableApi)->fromQuery(IntegrationSearchableUser::query())->jsonSerialize();
 
     // Intersection is empty -> no search clause -> all 3 rows returned.
     expect($result->total())->toBe(3);
@@ -54,7 +55,7 @@ it('honors withSearchableColumns() on DatatableApi over the model declaration', 
     // and request searches "doe" which only matches last_name="Doe".
     bindRequest(['search' => 'doe']);
 
-    $result = (new DatatableApi())
+    $result = (new DatatableApi)
         ->fromQuery(IntegrationSearchableUser::query())
         ->withSearchableColumns(['last_name'])
         ->jsonSerialize();
@@ -65,7 +66,7 @@ it('honors withSearchableColumns() on DatatableApi over the model declaration', 
 it('supports raw QueryBuilder via withSearchableColumns()', function () {
     bindRequest(['search' => 'jane']);
 
-    $result = (new DatatableApi())
+    $result = (new DatatableApi)
         ->fromQuery(DB::table('test_users'))
         ->withSearchableColumns(['first_name'])
         ->jsonSerialize();
@@ -76,18 +77,18 @@ it('supports raw QueryBuilder via withSearchableColumns()', function () {
 it('throws when no whitelist exists and auto-discovery is off', function () {
     config()->set('laraveldatatable.search.auto_discover_columns', false);
     // Rebind the resolver to pick up the new config.
-    app()->forgetInstance(\AleMian95\Datatable\Contracts\SearchColumnResolver::class);
+    app()->forgetInstance(SearchColumnResolver::class);
 
     bindRequest(['search' => 'jane']);
 
-    (new DatatableApi())->fromQuery(TestUser::query())->jsonSerialize();
+    (new DatatableApi)->fromQuery(TestUser::query())->jsonSerialize();
 })->throws(SearchColumnsNotConfiguredException::class);
 
 it('uses auto-discovery when no whitelist exists and the flag is on', function () {
     bindRequest(['search' => 'jane']);
 
     // Plain TestUser has no whitelist; auto-discovery is on by default.
-    $result = (new DatatableApi())->fromQuery(TestUser::query())->jsonSerialize();
+    $result = (new DatatableApi)->fromQuery(TestUser::query())->jsonSerialize();
 
     // "jane" matches first_name and email rows.
     expect($result->total())->toBe(2);
@@ -96,7 +97,7 @@ it('uses auto-discovery when no whitelist exists and the flag is on', function (
 it('omits the search clause end-to-end when withSearchableColumns is called with an empty array', function () {
     bindRequest(['search' => 'jane']);
 
-    $result = (new DatatableApi())
+    $result = (new DatatableApi)
         ->fromQuery(IntegrationSearchableUser::query())
         ->withSearchableColumns([])
         ->jsonSerialize();
@@ -117,7 +118,7 @@ it('drops blacklisted request.search_columns end-to-end via the auto-discovery b
     // clause is added, and all rows are returned.
     bindRequest(['search' => 'secret', 'search_columns' => 'password,api_token']);
 
-    $result = (new DatatableApi())->fromQuery(TestUser::query())->jsonSerialize();
+    $result = (new DatatableApi)->fromQuery(TestUser::query())->jsonSerialize();
 
     expect($result->total())->toBe(3);
 });

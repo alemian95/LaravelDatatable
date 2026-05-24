@@ -30,7 +30,7 @@ class EmptyWhitelistTestUser extends TestUser implements HasSearchableColumns
 }
 
 it('returns the declared columns when the model implements the contract', function () {
-    $source = new ModelDeclaredColumnSource();
+    $source = new ModelDeclaredColumnSource;
 
     $builder = SearchableTestUser::query();
 
@@ -38,7 +38,7 @@ it('returns the declared columns when the model implements the contract', functi
 });
 
 it('returns null when the model does not implement the contract', function () {
-    $source = new ModelDeclaredColumnSource();
+    $source = new ModelDeclaredColumnSource;
 
     $builder = NonSearchableTestUser::query();
 
@@ -46,7 +46,7 @@ it('returns null when the model does not implement the contract', function () {
 });
 
 it('returns null for a raw QueryBuilder', function () {
-    $source = new ModelDeclaredColumnSource();
+    $source = new ModelDeclaredColumnSource;
 
     $builder = DB::table('test_users');
 
@@ -54,7 +54,7 @@ it('returns null for a raw QueryBuilder', function () {
 });
 
 it('preserves an empty whitelist as an authoritative block', function () {
-    $source = new ModelDeclaredColumnSource();
+    $source = new ModelDeclaredColumnSource;
 
     $builder = EmptyWhitelistTestUser::query();
 
