@@ -21,7 +21,12 @@ class DatatableServiceProvider extends PackageServiceProvider
 
     public function registeringPackage(): void
     {
-        $this->app->singleton(SearchColumnResolver::class, function ($app): DefaultSearchColumnResolver {
+        // Scoped instead of singleton: a fresh resolver is built for each HTTP
+        // request / queue job, picking up runtime config changes (e.g. a
+        // multi-tenant context that swaps laraveldatatable.search.*). The
+        // resolver itself is stateless, so the per-request construction cost
+        // is negligible.
+        $this->app->scoped(SearchColumnResolver::class, function ($app): DefaultSearchColumnResolver {
             $config = $app['config']->get('laraveldatatable.search', []);
 
             return new DefaultSearchColumnResolver(
