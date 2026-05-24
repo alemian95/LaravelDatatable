@@ -9,6 +9,7 @@ use AleMian95\Datatable\Search\RelationSearch;
 use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\Log;
 
 class SearchApplier implements QueryApplier
@@ -43,58 +44,93 @@ class SearchApplier implements QueryApplier
             return;
         }
 
-        $searchColumns = $this->dropUnsupportedRelationColumns($builder, $searchColumns);
+        $resolved = $this->partitionAndResolve($builder, $searchColumns);
 
-        if (empty($searchColumns)) {
+        if (empty($resolved['flat']) && empty($resolved['dotted'])) {
             return;
         }
 
-        $builder->where(function ($query) use ($searchColumns, $request): void {
-            foreach ($searchColumns as $field) {
-                if (str_contains($field, '.')) {
-                    // Safe: dropUnsupportedRelationColumns guarantees we only get
-                    // here when the underlying builder is Eloquent/Relation, so
-                    // the nested $query is too and supports orWhereHas.
-                    $parts = explode('.', $field);
-                    $column = array_pop($parts);
-                    $relationPath = implode('.', $parts);
+        $term = $request->search;
+        $baseTable = $this->baseTableFor($builder);
 
-                    $query->orWhereHas($relationPath, function ($q) use ($column, $request): void {
-                        $q->whereLike($column, "%{$request->search}%");
-                    });
-                } else {
-                    $query->orWhereLike($field, "%{$request->search}%");
-                }
+        $builder->where(function (Builder $query) use ($resolved, $term, $baseTable): void {
+            foreach ($resolved['flat'] as $field) {
+                $query->orWhereLike($field, "%{$term}%");
+            }
+
+            foreach ($resolved['dotted'] as $entry) {
+                $entry['spec']->apply($query, $baseTable, $entry['remoteColumn'], $term);
             }
         });
     }
 
     /**
-     * Drops dot-notation entries when the builder cannot honor them
-     * (raw QueryBuilder doesn't support orWhereHas). Logs a warning naming the
-     * ignored columns so a misconfiguration surfaces instead of silently
-     * returning zero matches.
-     *
      * @param  array<int, string>  $columns
-     * @return array<int, string>
+     * @return array{flat: array<int, string>, dotted: array<int, array{spec: RelationSearch, remoteColumn: string}>}
      */
-    private function dropUnsupportedRelationColumns(Builder $builder, array $columns): array
+    private function partitionAndResolve(Builder $builder, array $columns): array
     {
-        if ($builder instanceof EloquentBuilder || $builder instanceof Relation) {
-            return $columns;
+        $flat = [];
+        $dotted = [];
+        $dropped = [];
+
+        foreach ($columns as $col) {
+            if (! str_contains($col, '.')) {
+                $flat[] = $col;
+
+                continue;
+            }
+
+            $segments = explode('.', $col);
+            $relationKey = $segments[0];
+
+            $spec = $this->relationResolver?->resolve($builder, $relationKey, $this->relationSearchMap);
+
+            if ($spec === null) {
+                $dropped[] = $col;
+
+                continue;
+            }
+
+            $remoteColumn = implode('.', array_slice($segments, 1));
+            $dotted[] = ['spec' => $spec, 'remoteColumn' => $remoteColumn];
         }
 
-        $dotted = array_values(array_filter($columns, fn (string $c): bool => str_contains($c, '.')));
-
-        if (! empty($dotted)) {
+        if (! empty($dropped)) {
             Log::warning(sprintf(
-                'SearchApplier ignored dot-notation columns [%s]: relation-based search is only '.
-                'supported on Eloquent builders or Relation instances, not on a raw QueryBuilder. '.
-                'Either pass the underlying Eloquent model, override the resolver, or remove the dotted entries.',
-                implode(', ', $dotted),
+                'SearchApplier dropped dotted columns [%s]: no RelationSearch spec found for the leading segment, '.
+                'and the builder is not an Eloquent builder with an auto-discoverable relation method. '.
+                'Declare them via DatatableApi::withRelationSearch(...).',
+                implode(', ', $dropped),
             ));
         }
 
-        return array_values(array_filter($columns, fn (string $c): bool => ! str_contains($c, '.')));
+        return ['flat' => $flat, 'dotted' => $dotted];
+    }
+
+    /**
+     * Returns the base table name for use by RelationSearch specs.
+     *
+     * Returns '' when no base table can be inferred (e.g. raw QueryBuilder
+     * whose `from` is a subquery expression rather than a string identifier).
+     * Callers MUST guard the empty case before handing the result to a
+     * spec — passing '' produces invalid SQL like `"x"."id" = ".".".y"`.
+     * Task 10 in the implementation plan adds this guard at the apply() level.
+     */
+    private function baseTableFor(Builder $builder): string
+    {
+        if ($builder instanceof EloquentBuilder) {
+            return $builder->getModel()->getTable();
+        }
+
+        if ($builder instanceof Relation) {
+            return $builder->getRelated()->getTable();
+        }
+
+        if ($builder instanceof QueryBuilder && is_string($builder->from)) {
+            return $builder->from;
+        }
+
+        return '';
     }
 }
