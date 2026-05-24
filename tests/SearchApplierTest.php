@@ -251,3 +251,46 @@ it('combines a flat column and a single-hop dotted column in one nested WHERE', 
         ->toContain('exists')
         ->toContain('"test_users"."first_name"');
 });
+
+it('preserves the legacy orWhereHas path for multi-hop Eloquent without a declared spec', function () {
+    Log::shouldReceive('warning')->never();
+
+    $columnResolver = Mockery::mock(SearchColumnResolver::class);
+    $columnResolver->shouldReceive('resolve')->once()->andReturn(['author.posts.title']);
+
+    $relationResolver = new \AleMian95\Datatable\Search\DefaultRelationSearchResolver;
+
+    $applier = new SearchApplier($columnResolver, null, null, $relationResolver, []);
+    $builder = TestPost::query();
+
+    $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
+
+    $sql = strtolower($builder->toRawSql());
+
+    // orWhereHas('author.posts', ...) generates nested EXISTS:
+    // outer on test_users (author), inner on test_posts with "title" like ...
+    expect($sql)
+        ->toContain('exists')
+        ->toContain('"test_users"')
+        ->toContain('"test_posts"')
+        ->toContain('"title" like');
+});
+
+it('drops a multi-hop dotted column on raw with a warning', function () {
+    Log::shouldReceive('warning')
+        ->once()
+        ->with(Mockery::pattern('/author\.posts\.title/'));
+
+    $columnResolver = Mockery::mock(SearchColumnResolver::class);
+    $columnResolver->shouldReceive('resolve')->once()->andReturn(['author.posts.title']);
+
+    $relationResolver = new \AleMian95\Datatable\Search\DefaultRelationSearchResolver;
+
+    $applier = new SearchApplier($columnResolver, null, null, $relationResolver, []);
+    $builder = DB::table('test_posts');
+
+    $beforeSql = $builder->toSql();
+    $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
+
+    expect($builder->toSql())->toBe($beforeSql);
+});

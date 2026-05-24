@@ -59,14 +59,14 @@ class SearchApplier implements QueryApplier
             }
 
             foreach ($resolved['dotted'] as $entry) {
-                $entry['spec']->apply($query, $baseTable, $entry['remoteColumn'], $term);
+                $entry->apply($query, $baseTable, $term);
             }
         });
     }
 
     /**
      * @param  array<int, string>  $columns
-     * @return array{flat: array<int, string>, dotted: array<int, array{spec: RelationSearch, remoteColumn: string}>}
+     * @return array{flat: array<int, string>, dotted: array<int, DottedEntry>}
      */
     private function partitionAndResolve(Builder $builder, array $columns): array
     {
@@ -84,6 +84,19 @@ class SearchApplier implements QueryApplier
             $segments = explode('.', $col);
             $relationKey = $segments[0];
 
+            // Multi-hop on Eloquent without an explicit declaration: route to the
+            // legacy orWhereHas path. This preserves backward compatibility for
+            // a.b.c style searches that were previously handled inline.
+            if (
+                count($segments) > 2
+                && ! isset($this->relationSearchMap[$relationKey])
+                && $builder instanceof EloquentBuilder
+            ) {
+                $dotted[] = new LegacyHasDottedEntry($col);
+
+                continue;
+            }
+
             $spec = $this->relationResolver?->resolve($builder, $relationKey, $this->relationSearchMap);
 
             if ($spec === null) {
@@ -93,7 +106,7 @@ class SearchApplier implements QueryApplier
             }
 
             $remoteColumn = implode('.', array_slice($segments, 1));
-            $dotted[] = ['spec' => $spec, 'remoteColumn' => $remoteColumn];
+            $dotted[] = new SpecDottedEntry($spec, $remoteColumn);
         }
 
         if (! empty($dropped)) {
@@ -132,5 +145,53 @@ class SearchApplier implements QueryApplier
         }
 
         return '';
+    }
+}
+
+/**
+ * Internal contract: one resolved entry for a dot-notation search column.
+ * Two implementations: SpecDottedEntry (RelationSearch-backed),
+ * LegacyHasDottedEntry (multi-hop Eloquent `orWhereHas` fallback).
+ */
+interface DottedEntry
+{
+    public function apply(Builder $query, string $baseTable, string $term): void;
+}
+
+final class SpecDottedEntry implements DottedEntry
+{
+    public function __construct(
+        private readonly RelationSearch $spec,
+        private readonly string $remoteColumn,
+    ) {}
+
+    public function apply(Builder $query, string $baseTable, string $term): void
+    {
+        $this->spec->apply($query, $baseTable, $this->remoteColumn, $term);
+    }
+}
+
+final class LegacyHasDottedEntry implements DottedEntry
+{
+    public function __construct(
+        private readonly string $path,
+    ) {}
+
+    public function apply(Builder $query, string $baseTable, string $term): void
+    {
+        $segments = explode('.', $this->path);
+        $column = array_pop($segments);
+        $relationPath = implode('.', $segments);
+
+        // Safe by construction: this entry is only created when the builder
+        // is an EloquentBuilder, which is the only type that exposes
+        // orWhereHas. The closure parameter $query passed into apply() runs
+        // inside a where() group on the same builder, preserving the
+        // Eloquent type. A runtime instanceof narrows for static analysis.
+        if (! $query instanceof EloquentBuilder) {
+            return;
+        }
+
+        $query->orWhereHas($relationPath, fn (EloquentBuilder $q) => $q->whereLike($column, "%{$term}%"));
     }
 }
