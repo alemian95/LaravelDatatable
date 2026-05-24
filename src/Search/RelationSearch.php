@@ -54,6 +54,29 @@ final class RelationSearch
         return self::hasOne($table, $foreignKey, $localKey);
     }
 
+    public static function belongsToMany(
+        string $table,
+        string $pivot,
+        ?string $foreignPivotKey = null,
+        ?string $relatedPivotKey = null,
+        string $parentKey = 'id',
+        string $relatedKey = 'id',
+    ): self {
+        $relatedPivotKey ??= Str::singular($table) . '_id';
+
+        return new self(function (Builder $query, string $baseTable, string $remoteColumn, string $term)
+            use ($table, $pivot, $foreignPivotKey, $relatedPivotKey, $parentKey, $relatedKey): void {
+            $foreignPivotKey ??= Str::singular($baseTable) . '_id';
+
+            $query->orWhereExists(fn (QueryBuilder $sub) =>
+                $sub->from($table)
+                    ->join($pivot, "{$pivot}.{$relatedPivotKey}", '=', "{$table}.{$relatedKey}")
+                    ->whereColumn("{$pivot}.{$foreignPivotKey}", "{$baseTable}.{$parentKey}")
+                    ->whereLike("{$table}.{$remoteColumn}", "%{$term}%")
+            );
+        });
+    }
+
     public function apply(Builder $query, string $baseTable, string $remoteColumn, string $term): void
     {
         ($this->applier)($query, $baseTable, $remoteColumn, $term);

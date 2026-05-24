@@ -88,3 +88,61 @@ it('hasMany produces the same SQL shape as hasOne', function () {
 
     expect($hasManyQuery->toRawSql())->toBe($hasOneQuery->toRawSql());
 });
+
+it('belongsToMany applies EXISTS with pivot inner join and default keys', function () {
+    $query = DB::table('users');
+    $spec = RelationSearch::belongsToMany('roles', pivot: 'role_user');
+
+    $query->where(function ($q) use ($spec) {
+        $spec->apply($q, 'users', 'label', 'admin');
+    });
+
+    $sql = $query->toRawSql();
+
+    expect($sql)
+        ->toContain('from "roles"')
+        ->toContain('inner join "role_user"')
+        ->toContain('"role_user"."role_id" = "roles"."id"')
+        ->toContain('"role_user"."user_id" = "users"."id"')
+        ->toContain('"roles"."label"');
+});
+
+it('belongsToMany respects custom pivot key overrides', function () {
+    $query = DB::table('users');
+    $spec = RelationSearch::belongsToMany(
+        'roles',
+        pivot: 'role_user',
+        foreignPivotKey: 'u_id',
+        relatedPivotKey: 'r_id',
+    );
+
+    $query->where(function ($q) use ($spec) {
+        $spec->apply($q, 'users', 'label', 'admin');
+    });
+
+    $sql = $query->toRawSql();
+
+    expect($sql)
+        ->toContain('"role_user"."r_id" = "roles"."id"')
+        ->toContain('"role_user"."u_id" = "users"."id"');
+});
+
+it('belongsToMany respects custom parentKey and relatedKey', function () {
+    $query = DB::table('users');
+    $spec = RelationSearch::belongsToMany(
+        'roles',
+        pivot: 'role_user',
+        parentKey: 'uuid',
+        relatedKey: 'slug',
+    );
+
+    $query->where(function ($q) use ($spec) {
+        $spec->apply($q, 'users', 'label', 'admin');
+    });
+
+    $sql = $query->toRawSql();
+
+    expect($sql)
+        ->toContain('"role_user"."role_id" = "roles"."slug"')
+        ->toContain('"role_user"."user_id" = "users"."uuid"');
+});
