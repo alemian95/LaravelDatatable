@@ -14,8 +14,9 @@ trait HasSearchableColumns
      * Emits a warning log if the property is missing or has the wrong type —
      * a likely sign of a typo (e.g. $searchabel) or a developer who mixed in
      * the trait without realizing it requires a $searchable array. A genuinely
-     * empty array ($searchable = []) is treated as an authoritative
-     * "block the search" signal and does NOT log a warning.
+     * empty array ($searchable = []) is treated as an authoritative signal to
+     * omit the search clause (no LIKE applied, dataset returned unfiltered by
+     * the search term) and does NOT log a warning.
      *
      * @return array<int, string>
      */
@@ -24,7 +25,8 @@ trait HasSearchableColumns
         if (! property_exists($this, 'searchable')) {
             Log::warning(sprintf(
                 '[%s] uses the HasSearchableColumns trait but does not define a $searchable property. '.
-                'Returning an empty whitelist (which now blocks the search). Did you mean to override '.
+                'Returning an empty whitelist — the search clause will be omitted entirely (no LIKE '.
+                'applied, dataset returned unfiltered by the search term). Did you mean to override '.
                 'getSearchableColumns() instead, or is there a typo in the property name?',
                 static::class,
             ));
@@ -34,8 +36,9 @@ trait HasSearchableColumns
 
         if (! is_array($this->searchable)) {
             Log::warning(sprintf(
-                '[%s]::$searchable must be an array, got %s. Returning an empty whitelist '.
-                '(which now blocks the search).',
+                '[%s]::$searchable must be an array, got %s. Returning an empty whitelist — '.
+                'the search clause will be omitted entirely (no LIKE applied, dataset returned '.
+                'unfiltered by the search term).',
                 static::class,
                 get_debug_type($this->searchable),
             ));

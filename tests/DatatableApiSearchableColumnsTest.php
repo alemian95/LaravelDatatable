@@ -93,7 +93,7 @@ it('uses auto-discovery when no whitelist exists and the flag is on', function (
     expect($result->total())->toBe(2);
 });
 
-it('blocks the search end-to-end when withSearchableColumns is called with an empty array', function () {
+it('omits the search clause end-to-end when withSearchableColumns is called with an empty array', function () {
     bindRequest(['search' => 'jane']);
 
     $result = (new DatatableApi())
@@ -101,9 +101,11 @@ it('blocks the search end-to-end when withSearchableColumns is called with an em
         ->withSearchableColumns([])
         ->jsonSerialize();
 
-    // Empty whitelist => no WHERE clause is added => all rows returned.
-    // (Distinguishes the new semantics from "no whitelist at all", which would
-    // fall back to the model's [first_name, email] declaration.)
+    // Empty whitelist is an authoritative "omit the search clause" signal:
+    // no LIKE is applied, the dataset is returned unfiltered by the search
+    // term, so all 3 rows surface. This distinguishes the new semantics from
+    // "no whitelist at all", which would fall back to the model's
+    // [first_name, email] declaration and return only the 2 matching rows.
     expect($result->total())->toBe(3);
 });
 

@@ -53,7 +53,7 @@ Colonne effettive da cercare:
   Se esiste whitelist autoritativa (anche se vuota):
     Se request.search_columns presente → intersezione(request.search_columns, whitelist)
     Altrimenti                          → whitelist
-    (whitelist vuota ⇒ risultato vuoto ⇒ nessuna WHERE applicata: tutte le righe)
+    (whitelist vuota ⇒ intersezione vuota ⇒ clausola di search omessa: dataset non filtrato dal termine, tutte le righe ritornate)
 
   Se NON esiste whitelist:
     Se config.search.auto_discover_columns == true:
@@ -67,7 +67,7 @@ Colonne effettive da cercare:
 
 **Note importanti:**
 
-- **Whitelist vuota autoritativa.** `withSearchableColumns([])` e un Model che ritorna `[]` da `getSearchableColumns()` sono trattati come "blocca la search": la clausola `WHERE` di search è omessa e tutto il dataset viene restituito senza filtro per il termine di ricerca. Questa è una scelta esplicita del developer (es. disabilita la search su un endpoint specifico) e si distingue da `null` (= "non ho dichiarato nulla, fall-through").
+- **Whitelist vuota autoritativa.** `withSearchableColumns([])` e un Model che ritorna `[]` da `getSearchableColumns()` sono un segnale autoritativo per **omettere la clausola di search**: nessun `LIKE` viene aggiunto e il dataset viene ritornato senza filtro per il termine di ricerca (paginazione, sort e altri filtri restano applicati). Questa è una scelta esplicita del developer (es. disabilita la search su un endpoint specifico) e si distingue da `null` (= "non ho dichiarato nulla, fall-through").
 - **Intersezione vuota = nessuna search applicata.** Quando l'intersezione (whitelist ∩ request.search_columns) è vuota, la search non viene applicata: il client ha chiesto colonne non autorizzate, il server le ignora. Non si lancia eccezione — è il comportamento meno disruptive e più sicuro.
 - **Auto-discovery + request.** Anche nel branch auto-discovery, `request.search_columns` viene intersecato col risultato della discovery (già filtrato per tipo string + blacklist). Quindi la `auto_discovery_blacklist` protegge anche dai tentativi del client di passare colonne sensibili come `password`. Questa è una semantica più stretta rispetto al design originale ("request vince senza filtro") — vedi §10.
 - **Auto-discovery: filtri minimi sempre attivi.** Anche quando attiva, l'auto-discovery applica:
@@ -173,7 +173,7 @@ return new DatatableApi()
 // Disabilitazione esplicita della search
 return new DatatableApi()
     ->fromQuery(User::query())
-    ->withSearchableColumns([]); // nessuna WHERE di search applicata
+    ->withSearchableColumns([]); // clausola di search omessa: dataset non filtrato dal termine
 ```
 
 ### 5.4 Eccezione
@@ -421,7 +421,7 @@ Setup test: SQLite in-memory configurato nel package (`composer test`), con fixt
 
 Cambi applicati a questo design durante l'iterazione post-implementazione (final code review):
 
-1. **Whitelist vuota autoritativa.** Le sorgenti `Api` e `Model` ora distinguono `null` (nessuna opinione) da `[]` (whitelist autoritativa, blocca la search). Il design originale collassava entrambi a "non dichiarato".
+1. **Whitelist vuota autoritativa.** Le sorgenti `Api` e `Model` ora distinguono `null` (nessuna opinione) da `[]` (whitelist autoritativa che omette la clausola di search). Il design originale collassava entrambi a "non dichiarato".
 2. **Intersezione con auto-discovery anche nel branch fallback.** Quando non c'è whitelist e auto-discovery è on, `request.search_columns` viene intersecato col risultato dell'auto-discovery (e quindi soggetto a blacklist + filtro tipo), invece di vincere senza filtro come previsto nel design originale. Chiude un buco di sicurezza che permetteva al client di forzare colonne blacklisted.
 3. **Strict mode incondizionato.** Quando `auto_discover_columns=false` e non c'è whitelist, l'eccezione è lanciata anche se `request.search_columns` è presente. Il design originale aveva una concessione per il "raw QueryBuilder ad-hoc" che è risultata bypassabile.
 4. **Inclusione di `uuid`/`guid`** in `SEARCHABLE_TYPES`. Senza, le colonne `$table->uuid()` venivano silenziosamente escluse su MySQL/Postgres.
