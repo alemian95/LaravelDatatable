@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 class DefaultRelationSearchResolver implements Contract
 {
@@ -28,7 +29,15 @@ class DefaultRelationSearchResolver implements Contract
             return null;
         }
 
-        $relation = $model->{$relationKey}();
+        try {
+            $relation = $model->{$relationKey}();
+        } catch (\Throwable) {
+            return null;
+        }
+
+        if (! $relation instanceof Relation) {
+            return null;
+        }
 
         return match (true) {
             $relation instanceof BelongsTo     => RelationSearch::belongsTo(

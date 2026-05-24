@@ -345,3 +345,23 @@ it('strips a table alias from baseTable so default-key derivation works on alias
         ->toContain('"test_posts"."test_user_id" = "test_users"."id"')
         ->toContain('"test_posts"."title"');
 });
+
+it('drops a multi-hop dotted column on raw even when a single-segment spec is declared', function () {
+    Log::shouldReceive('warning')
+        ->once()
+        ->with(Mockery::pattern('/author\.posts\.title.*multi-hop/i'));
+
+    $columnResolver = Mockery::mock(SearchColumnResolver::class);
+    $columnResolver->shouldReceive('resolve')->once()->andReturn(['author.posts.title']);
+
+    $relationResolver = new \AleMian95\Datatable\Search\DefaultRelationSearchResolver;
+    $map = ['author' => RelationSearch::belongsTo('test_users', localKey: 'test_user_id')];
+
+    $applier = new SearchApplier($columnResolver, null, null, $relationResolver, $map);
+    $builder = DB::table('test_posts');
+
+    $beforeSql = $builder->toSql();
+    $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
+
+    expect($builder->toSql())->toBe($beforeSql);
+});

@@ -107,6 +107,18 @@ class SearchApplier implements QueryApplier
                 continue;
             }
 
+            // Multi-hop on raw QueryBuilder is unsupported in v1: a declared single-segment
+            // spec would receive remoteColumn='b.c' and emit broken SQL. Drop with a clear
+            // reason instead. (Multi-hop on Eloquent is handled by the legacy branch above.)
+            if (count($segments) > 2 && ! $builder instanceof EloquentBuilder) {
+                $dropped[] = $col;
+                if ($droppedReason === '') {
+                    $droppedReason = 'multi-hop dot-notation (a.b.c) is supported only on Eloquent builders; on a raw QueryBuilder, declare the relation on the leading segment alone or use Eloquent';
+                }
+
+                continue;
+            }
+
             $spec = $this->relationResolver?->resolve($builder, $relationKey, $this->relationSearchMap);
 
             if ($spec === null) {

@@ -46,6 +46,11 @@ final class RelationSearch
         });
     }
 
+    /**
+     * For search purposes, hasMany collapses to the same EXISTS-style subquery as hasOne —
+     * the cardinality of the related rows is irrelevant when the predicate is `EXISTS (...)`.
+     * Kept as a distinct factory so calling code reads naturally against the underlying relation type.
+     */
     public static function hasMany(
         string $table,
         ?string $foreignKey = null,

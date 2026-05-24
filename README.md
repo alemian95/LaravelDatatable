@@ -253,6 +253,8 @@ A declared spec wins over Eloquent auto-discovery for the same relation key, whi
 
 **Generated SQL** uses `orWhereExists` with explicit key joins (and an inner join for `belongsToMany`). Columns are always qualified `table.column` to avoid ambiguity with the base table.
 
+**Migrating from older versions** that already used Eloquent dot-notation search: the row set returned by the package is unchanged. The SQL emitted internally changes from `orWhereHas(...)` to `orWhereExists(...)`; this is visible in query logs and any test that asserts on the raw SQL text, but is invisible at the result-set level.
+
 ### Known limits
 
 1. **Multi-hop dot-notation on raw `QueryBuilder`.** Single-hop paths (`author.name`) work on both Eloquent and raw queries — see [Relational search](#relational-search). Multi-hop paths (`author.country.name`) are supported only on Eloquent (resolved via `orWhereHas`); on a raw `QueryBuilder` they are dropped with a `Log::warning`.

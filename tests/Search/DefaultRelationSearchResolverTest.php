@@ -79,3 +79,13 @@ it('explicit declaration wins over auto-discovery for the same relation key', fu
 
     expect($spec)->toBe($override);
 });
+
+it('returns null when the named method exists but is not a Relation', function () {
+    // TestPost::getKey() exists on every Eloquent model and returns the primary key.
+    // It is NOT a Relation instance — the resolver must not crash and must return null.
+    $resolver = new DefaultRelationSearchResolver;
+
+    $result = $resolver->resolve(TestPost::query(), 'getKey', []);
+
+    expect($result)->toBeNull();
+});
