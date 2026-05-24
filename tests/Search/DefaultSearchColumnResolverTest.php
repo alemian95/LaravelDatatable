@@ -91,7 +91,9 @@ it('falls back to auto-discovery when no whitelist exists and the flag is on', f
     expect($result)->toContain('email');
 });
 
-it('lets request search_columns win unfiltered when no whitelist exists and auto-discovery is on', function () {
+it('intersects request search_columns with the auto-discovery result when no whitelist exists', function () {
+    // Both first_name and last_name are valid string columns and are not in the
+    // blacklist, so they survive the intersection unchanged.
     $resolver = makeResolver(autoDiscover: true);
     $builder = TestUser::query();
 
@@ -160,4 +162,33 @@ it('blocks the search when the Model source returns an authoritative empty white
     $result = $resolver->resolve($builder, makeRequest(['search_columns' => 'first_name']), null);
 
     expect($result)->toBe([]);
+});
+
+it('drops blacklisted request columns through auto-discovery when no whitelist exists', function () {
+    $resolver = makeResolver(autoDiscover: true, blacklist: ['password', '*_token']);
+    $builder = TestUser::query();
+
+    $result = $resolver->resolve(
+        $builder,
+        makeRequest(['search_columns' => 'first_name,password,api_token']),
+        null,
+    );
+
+    // password and api_token are excluded by the blacklist; first_name survives.
+    expect($result)->toBe(['first_name']);
+});
+
+it('drops non-string request columns through auto-discovery when no whitelist exists', function () {
+    $resolver = makeResolver(autoDiscover: true);
+    $builder = TestUser::query();
+
+    $result = $resolver->resolve(
+        $builder,
+        makeRequest(['search_columns' => 'first_name,id,login_count,created_at']),
+        null,
+    );
+
+    // id (bigint), login_count (bigint), created_at (timestamp) all fall outside
+    // SEARCHABLE_TYPES, so they're filtered out by AutoDiscoveryColumnSource.
+    expect($result)->toBe(['first_name']);
 });

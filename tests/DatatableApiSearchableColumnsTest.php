@@ -106,3 +106,16 @@ it('blocks the search end-to-end when withSearchableColumns is called with an em
     // fall back to the model's [first_name, email] declaration.)
     expect($result->total())->toBe(3);
 });
+
+it('drops blacklisted request.search_columns end-to-end via the auto-discovery blacklist', function () {
+    // TestUser has NO HasSearchableColumns trait, so no model whitelist.
+    // Default config: auto-discover on, blacklist excludes password/*_token/etc.
+    // Client tries to search 'secret' on password and api_token. Both are filtered
+    // out by the auto-discovery blacklist, so the intersection is empty, no WHERE
+    // clause is added, and all rows are returned.
+    bindRequest(['search' => 'secret', 'search_columns' => 'password,api_token']);
+
+    $result = (new DatatableApi())->fromQuery(TestUser::query())->jsonSerialize();
+
+    expect($result->total())->toBe(3);
+});
