@@ -8,13 +8,13 @@ it('returns the columns passed in', function () {
     expect($source->columns(['name', 'email']))->toBe(['name', 'email']);
 });
 
-it('returns an empty array when given null', function () {
+it('returns null when given null (no source opinion)', function () {
     $source = new ApiDeclaredColumnSource();
 
-    expect($source->columns(null))->toBe([]);
+    expect($source->columns(null))->toBeNull();
 });
 
-it('returns an empty array when given an empty array', function () {
+it('preserves an empty array as an authoritative empty whitelist', function () {
     $source = new ApiDeclaredColumnSource();
 
     expect($source->columns([]))->toBe([]);

@@ -4,7 +4,6 @@ use AleMian95\Datatable\Concerns\HasSearchableColumns as HasSearchableColumnsTra
 use AleMian95\Datatable\Contracts\HasSearchableColumns;
 use AleMian95\Datatable\Search\Sources\ModelDeclaredColumnSource;
 use AleMian95\Datatable\Tests\Fixtures\Models\TestUser;
-use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\DB;
 
 class SearchableTestUser extends TestUser implements HasSearchableColumns
@@ -21,6 +20,15 @@ class NonSearchableTestUser extends TestUser
     protected $table = 'test_users';
 }
 
+class EmptyWhitelistTestUser extends TestUser implements HasSearchableColumns
+{
+    use HasSearchableColumnsTrait;
+
+    protected $table = 'test_users';
+
+    protected array $searchable = [];
+}
+
 it('returns the declared columns when the model implements the contract', function () {
     $source = new ModelDeclaredColumnSource();
 
@@ -29,18 +37,26 @@ it('returns the declared columns when the model implements the contract', functi
     expect($source->columns($builder))->toBe(['first_name', 'email']);
 });
 
-it('returns an empty array when the model does not implement the contract', function () {
+it('returns null when the model does not implement the contract', function () {
     $source = new ModelDeclaredColumnSource();
 
     $builder = NonSearchableTestUser::query();
 
-    expect($source->columns($builder))->toBe([]);
+    expect($source->columns($builder))->toBeNull();
 });
 
-it('returns an empty array for a raw QueryBuilder', function () {
+it('returns null for a raw QueryBuilder', function () {
     $source = new ModelDeclaredColumnSource();
 
     $builder = DB::table('test_users');
+
+    expect($source->columns($builder))->toBeNull();
+});
+
+it('preserves an empty whitelist as an authoritative block', function () {
+    $source = new ModelDeclaredColumnSource();
+
+    $builder = EmptyWhitelistTestUser::query();
 
     expect($source->columns($builder))->toBe([]);
 });

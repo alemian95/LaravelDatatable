@@ -10,18 +10,23 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 class ModelDeclaredColumnSource
 {
     /**
-     * @return array<int, string>
+     * Returns the model's declared whitelist, or null if the builder is not
+     * Eloquent or the model does not implement HasSearchableColumns. An empty
+     * array returned by getSearchableColumns() is treated as a deliberate
+     * "block the search" signal and is propagated as such.
+     *
+     * @return array<int, string>|null
      */
-    public function columns(Builder $builder): array
+    public function columns(Builder $builder): ?array
     {
         if (! ($builder instanceof EloquentBuilder || $builder instanceof Relation)) {
-            return [];
+            return null;
         }
 
         $model = $builder->getModel();
 
         if (! $model instanceof HasSearchableColumns) {
-            return [];
+            return null;
         }
 
         return $model->getSearchableColumns();

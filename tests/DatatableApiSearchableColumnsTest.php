@@ -92,3 +92,17 @@ it('uses auto-discovery when no whitelist exists and the flag is on', function (
     // "jane" matches first_name and email rows.
     expect($result->total())->toBe(2);
 });
+
+it('blocks the search end-to-end when withSearchableColumns is called with an empty array', function () {
+    bindRequest(['search' => 'jane']);
+
+    $result = (new DatatableApi())
+        ->fromQuery(IntegrationSearchableUser::query())
+        ->withSearchableColumns([])
+        ->jsonSerialize();
+
+    // Empty whitelist => no WHERE clause is added => all rows returned.
+    // (Distinguishes the new semantics from "no whitelist at all", which would
+    // fall back to the model's [first_name, email] declaration.)
+    expect($result->total())->toBe(3);
+});

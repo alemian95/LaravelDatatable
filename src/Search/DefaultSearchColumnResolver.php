@@ -50,17 +50,11 @@ class DefaultSearchColumnResolver implements SearchColumnResolver
     {
         $fromApi = $this->apiSource->columns($apiDeclaredColumns);
 
-        if (! empty($fromApi)) {
+        if ($fromApi !== null) {
             return $fromApi;
         }
 
-        $fromModel = $this->modelSource->columns($builder);
-
-        if (! empty($fromModel)) {
-            return $fromModel;
-        }
-
-        return null;
+        return $this->modelSource->columns($builder);
     }
 
     /**

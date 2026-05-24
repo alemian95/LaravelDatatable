@@ -163,7 +163,7 @@ public function index()
    2. `Model implements HasSearchableColumns` — the contract returns the whitelist (the trait `Concerns\HasSearchableColumns` reads a `protected array $searchable = [...]` property by default).
    3. Auto-discovery via `Schema::getColumnListing` — fallback **only** when `config('laraveldatatable.search.auto_discover_columns')` is `true` (default for backward compatibility). Filters out non-string columns and applies the `auto_discovery_blacklist`.
 
-   When a whitelist is declared, `search_columns` from the HTTP request is intersected against it: the client can never broaden it. When no source can satisfy the request and auto-discovery is off, a `SearchColumnsNotConfiguredException` is thrown.
+   When a whitelist is declared, `search_columns` from the HTTP request is intersected against it: the client can never broaden it. An empty whitelist (`withSearchableColumns([])` or `protected array $searchable = []`) is treated as an **authoritative "block the search" signal** — the search clause is omitted, and there is no fallback to the next source. When no source can satisfy the request and auto-discovery is off, a `SearchColumnsNotConfiguredException` is thrown.
 
    Example with the trait:
 

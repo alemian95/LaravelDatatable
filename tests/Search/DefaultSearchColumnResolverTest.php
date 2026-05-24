@@ -132,3 +132,32 @@ it('throws when no whitelist exists and auto-discovery is off, even if the reque
         null,
     );
 })->throws(SearchColumnsNotConfiguredException::class);
+
+it('blocks the search when the API source returns an authoritative empty whitelist', function () {
+    $resolver = makeResolver();
+    $builder = TestUser::query();
+
+    $result = $resolver->resolve($builder, makeRequest(['search_columns' => 'first_name']), []);
+
+    // Authoritative empty whitelist: intersection with any request columns is empty.
+    expect($result)->toBe([]);
+});
+
+it('blocks the search when the Model source returns an authoritative empty whitelist', function () {
+    // A model that implements HasSearchableColumns but returns [] is asking
+    // explicitly for the search to be blocked, not to fall back to auto-discovery.
+    $emptyModel = new class extends \AleMian95\Datatable\Tests\Fixtures\Models\TestUser implements \AleMian95\Datatable\Contracts\HasSearchableColumns {
+        use \AleMian95\Datatable\Concerns\HasSearchableColumns;
+
+        protected $table = 'test_users';
+
+        protected array $searchable = [];
+    };
+
+    $resolver = makeResolver();
+    $builder = $emptyModel::query();
+
+    $result = $resolver->resolve($builder, makeRequest(['search_columns' => 'first_name']), null);
+
+    expect($result)->toBe([]);
+});
