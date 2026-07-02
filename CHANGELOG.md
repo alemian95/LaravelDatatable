@@ -2,6 +2,31 @@
 
 All notable changes to `LaravelDatatable` will be documented in this file.
 
+## v0.0.1 - 2026-07-02
+
+First tagged release.
+
+### Added
+
+- Companion React package `@alemian95/laraveldatatable-react` (in `/react`, published separately to npm): server-side datatable with search, sort, pagination, column visibility, filters slide-over and bulk actions.
+- Laravel 13 support (alongside 11 and 12).
+- `DatatableApi::withRelationSearch(...)` + the `RelationSearch` DSL for dot-notation relational search.
+- `DatatableApi::withSortableColumns(...)` — sort whitelist for the `sort_by` param.
+- `default.max_per_page` config (clamps `per_page`); `debug.log_sql` config (gates the per-query SQL log, off by default).
+
+### Changed
+
+- Single-hop dot-notation search emits `orWhereExists(...)` instead of `orWhereHas(...)`.
+- SQL is no longer logged on every non-production request (now gated by `debug.log_sql`).
+- `per_page` clamped to `[1, max_per_page]`.
+
+### Removed
+
+- Dead `withRelationshipsAutoloading` branch.
+
+**Composer:** `composer require alemian95/laraveldatatable`
+**npm (frontend):** `npm install @alemian95/laraveldatatable-react`
+
 ## 0.0.1 - 2026-07-02
 
 First tagged release.
