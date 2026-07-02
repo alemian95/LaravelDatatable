@@ -8,3 +8,12 @@ parameters:
         - config
         - database
     tmpDir: build/phpstan
+    ignoreErrors:
+        # HasSearchableColumns is a public-API trait meant to be mixed into the
+        # consumer's own models. Nothing in the analysed paths (src/config/database)
+        # uses it, so PHPStan reports it as unused. Its real usages live in tests
+        # and downstream apps — not a bug. Scoped to this identifier + file so no
+        # genuine dead trait elsewhere is masked.
+        -
+            identifier: trait.unused
+            path: src/Concerns/HasSearchableColumns.php
