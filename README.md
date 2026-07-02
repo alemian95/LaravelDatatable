@@ -43,6 +43,15 @@ return [
     'default' => [
         // Default page size used when the request omits "per_page".
         'per_page' => 15,
+
+        // Hard upper bound: a larger "per_page" is clamped down to this cap.
+        'max_per_page' => 100,
+    ],
+
+    'debug' => [
+        // When true, the interpolated SQL of each query is logged at "info".
+        // Off by default: the SQL can contain the raw search term (PII).
+        'log_sql' => false,
     ],
 
     'search' => [
@@ -127,6 +136,7 @@ Each builder method below returns `$this`, so they can be chained freely.
 - **`fromQuery(Builder $query): self`** — accepts an Eloquent builder, a `Relation`, or a base `QueryBuilder`. Required.
 - **`withCustomSearch(Closure $search): self`** — overrides the default LIKE/auto-column search. The closure receives `($builder, string $term)` and is responsible for the full search clause.
 - **`withCustomSorts(array $sorts): self`** — map of `sort_by` value → `Closure($builder, string $direction)`. Triggered only when the incoming `sort_by` matches a key; otherwise the default sort logic runs.
+- **`withSortableColumns(array $columns): self`** — authoritative whitelist for the `sort_by` parameter (dot-notation entries included, e.g. `author.name`). A `sort_by` outside the list is dropped with a warning instead of reaching the database; keys declared via `withCustomSorts()` are always allowed. Leave it unset to keep the default behavior of sorting by any client-supplied column.
 - **`withCustomFilters(array $filters): self`** — array of `Closure($builder)` applied sequentially. Useful for hard-coded business filters (active scope, tenant scope, etc.) that should not be controllable from the client.
 - **`withSearchableColumns(array $columns): self`** — declares the authoritative whitelist of columns the search can target for this instance. Wins over the `HasSearchableColumns` contract on the model and is the only way to enable search on a raw `QueryBuilder` when `auto_discover_columns` is `false`. When set, `search_columns` from the request is intersected against this whitelist.
 - **`returnResource(string $resourceClass): self`** — fully-qualified API Resource class name. Output is wrapped via `Resource::collection($paginator)`.

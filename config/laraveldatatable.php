@@ -13,6 +13,32 @@ return [
         |
         */
         'per_page' => 15,
+
+        /*
+        |--------------------------------------------------------------------------
+        | Maximum page size
+        |--------------------------------------------------------------------------
+        |
+        | Hard upper bound for the "per_page" query parameter. A larger requested
+        | value is clamped down to this cap so a client cannot force an unbounded
+        | result set. Set as high as your largest legitimate export requires.
+        |
+        */
+        'max_per_page' => 100,
+    ],
+
+    'debug' => [
+        /*
+        |--------------------------------------------------------------------------
+        | Log the generated SQL
+        |--------------------------------------------------------------------------
+        |
+        | When true, the fully-interpolated SQL of each datatable query is written
+        | to the log at "info" level. Off by default: the interpolated string can
+        | contain the raw search term (potential PII). Enable only while debugging.
+        |
+        */
+        'log_sql' => false,
     ],
 
     'search' => [
