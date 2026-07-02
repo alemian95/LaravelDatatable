@@ -30,14 +30,15 @@ class DatatableApi implements JsonSerializable
     /** @var array<string, RelationSearch> */
     protected array $relationSearchMap = [];
 
+    /** @var array<int, string>|null */
+    protected ?array $apiDeclaredSortColumns = null;
+
     protected bool $hasResource = false;
 
     /**
      * @var class-string
      */
     protected string $resourceClass;
-
-    protected bool $hasRelationshipsAutoloading = false;
 
     public function __construct()
     {
@@ -96,6 +97,24 @@ class DatatableApi implements JsonSerializable
     }
 
     /**
+     * Declare the authoritative whitelist of columns the client may sort by via
+     * the "sort_by" request parameter (dot-notation entries included, e.g.
+     * "author.name"). When set, a "sort_by" outside the whitelist is dropped
+     * with a warning instead of hitting the database. Keys declared through
+     * withCustomSorts() are always allowed regardless of this list. Leave unset
+     * to preserve the legacy behavior of sorting by any client-supplied column.
+     *
+     * @param  array<int, string>  $columns
+     * @return $this
+     */
+    public function withSortableColumns(array $columns): self
+    {
+        $this->apiDeclaredSortColumns = $columns;
+
+        return $this;
+    }
+
+    /**
      * @return $this
      */
     public function fromQuery(Builder $query): self
@@ -138,7 +157,7 @@ class DatatableApi implements JsonSerializable
                 app(RelationSearchResolver::class),
                 $this->relationSearchMap,
             ),
-            new SortApplier($this->customSorts),
+            new SortApplier($this->customSorts, $this->apiDeclaredSortColumns),
             ...$this->appliers,
         ];
 
@@ -146,13 +165,11 @@ class DatatableApi implements JsonSerializable
             $applier->apply($this->builder, $this->request);
         }
 
-        ! app()->isProduction() && Log::info($this->builder->toRawSql());
+        if (config('laraveldatatable.debug.log_sql', false)) {
+            Log::info($this->builder->toRawSql());
+        }
 
         $paginator = $this->builder->paginate($this->request->perPage);
-
-        if ($this->hasRelationshipsAutoloading && method_exists($this->builder, 'withRelationshipsAutoloading')) {
-            $this->builder->withRelationshipsAutoloading();
-        }
 
         if ($this->hasResource) {
             $resource = $this->resourceClass;

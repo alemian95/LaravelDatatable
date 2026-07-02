@@ -22,7 +22,11 @@ class DatatableRequest
         $this->searchColumns = array_filter(explode(',', $request->string('search_columns', '')->toString()));
         $this->sortBy = $request->input('sort_by');
         $this->sortOrder = $request->input('sort_order', 'asc');
-        $this->perPage = $request->integer('per_page', config('laraveldatatable.default.per_page', 15));
+        // ponytail: clamp to [1, max] so a client cannot request an unbounded
+        // page size (DoS). Raise max_per_page in config if a legit caller needs more.
+        $perPage = $request->integer('per_page', (int) config('laraveldatatable.default.per_page', 15));
+        $maxPerPage = (int) config('laraveldatatable.default.max_per_page', 100);
+        $this->perPage = max(1, min($perPage, $maxPerPage));
     }
 
     public static function fromRequest(Request $request): self
