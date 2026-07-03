@@ -1,15 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient } from '@tanstack/react-query'
 import { DatatableProvider } from './provider'
 import { useDatatable } from './use-datatable'
 
 function wrapper(headers?: any) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={client}>
-      <DatatableProvider config={{ baseUrl: 'https://api.test', headers }}>{children}</DatatableProvider>
-    </QueryClientProvider>
+    <DatatableProvider config={{ baseUrl: 'https://api.test', headers }} queryClient={client}>
+      {children}
+    </DatatableProvider>
   )
 }
 

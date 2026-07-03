@@ -6,5 +6,5 @@ export default defineConfig({
   dts: true,
   clean: true,
   sourcemap: true,
-  external: ['react', 'react-dom', '@tanstack/react-query'],
+  external: ['react', 'react-dom', '@tanstack/react-query', '@tanstack/react-table'],
 })
