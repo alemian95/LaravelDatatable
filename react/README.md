@@ -110,6 +110,7 @@ interface DataTableProps<T> {
   defaultPerPage?: number                 // default 15
   filters?: FilterDef[]                   // renders the Filters slide-over
   bulkActions?: BulkAction<T>[]           // enables row selection + the bulk bar
+  getRowId?: (row: T, i: number) => string // stable row identity (defaults to row.id)
 }
 ```
 

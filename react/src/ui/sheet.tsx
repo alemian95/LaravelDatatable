@@ -28,7 +28,7 @@ export const SheetContent = forwardRef<
     >
       {children}
       <DialogPrimitive.Close
-        className="absolute right-4 top-4 opacity-70 transition-opacity hover:opacity-100 focus:outline-none"
+        className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400"
         aria-label="Close"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
@@ -51,3 +51,11 @@ export const SheetTitle = forwardRef<
   <DialogPrimitive.Title ref={ref} className={cn('text-base font-medium', className)} {...props} />
 ))
 SheetTitle.displayName = 'SheetTitle'
+
+export const SheetDescription = forwardRef<
+  ElementRef<typeof DialogPrimitive.Description>,
+  ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
+>(({ className, ...props }, ref) => (
+  <DialogPrimitive.Description ref={ref} className={cn('text-sm text-gray-500 dark:text-gray-400', className)} {...props} />
+))
+SheetDescription.displayName = 'SheetDescription'

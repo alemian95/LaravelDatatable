@@ -8,7 +8,7 @@ export function useDatatable<T>(endpoint: string, query: DatatableQuery) {
   const config = useDatatableConfig()
 
   const q = useQuery({
-    queryKey: [endpoint, query],
+    queryKey: [config.baseUrl, endpoint, query],
     placeholderData: keepPreviousData,
     queryFn: async (): Promise<PaginatorResponse<T>> => {
       const headers = await resolveHeaders(config.headers)
