@@ -5,6 +5,7 @@ namespace AleMian95\Datatable;
 use AleMian95\Datatable\Contracts\QueryApplier;
 use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Log;
@@ -26,8 +27,13 @@ class SortApplier implements QueryApplier
             return;
         }
 
-        if (isset($this->customSorts[$request->sortBy])) {
-            ($this->customSorts[$request->sortBy])($builder, $request->sortOrder);
+        $sortField = $request->sortBy;
+        if ($sortField === null) {
+            return;
+        }
+
+        if (isset($this->customSorts[$sortField])) {
+            ($this->customSorts[$sortField])($builder, $request->sortOrder);
 
             return;
         }
@@ -35,67 +41,108 @@ class SortApplier implements QueryApplier
         // A declared whitelist is authoritative: a sort_by outside it (and not a
         // custom sort key, handled above) is dropped with a warning rather than
         // reaching the database. Null means enforcement is disabled (legacy).
-        if ($this->sortableColumns !== null && ! in_array($request->sortBy, $this->sortableColumns, true)) {
+        if ($this->sortableColumns !== null && ! in_array($sortField, $this->sortableColumns, true)) {
             Log::warning(sprintf(
                 'SortApplier dropped sort_by [%s]: not in the whitelist declared via DatatableApi::withSortableColumns().',
-                $request->sortBy,
+                $sortField,
             ));
 
             return;
         }
 
-        $sortField = $request->sortBy;
-        $sortDirection = $request->sortOrder;
-
         if (str_contains($sortField, '.')) {
-            $parts = explode('.', $sortField);
-            $column = array_pop($parts);
+            $this->applyRelationSort($builder, $sortField, $request->sortOrder);
 
-            if ($builder instanceof EloquentBuilder || $builder instanceof Relation) {
-                $model = $builder->getModel();
-                $currentModel = $model;
-                $currentTable = $model->getTable();
-                $relatedAlias = '';
+            return;
+        }
 
-                foreach ($parts as $part) {
-                    if (! method_exists($currentModel, $part)) {
-                        $builder->orderBy($sortField, $sortDirection);
+        $builder->orderBy($sortField, $request->sortOrder);
+    }
 
-                        return;
-                    }
+    private function applyRelationSort(Builder $builder, string $sortField, string $sortDirection): void
+    {
+        // Dot-notation sort requires an explicit whitelist. Without one we would
+        // have to invoke a client-named method on the model to discover the
+        // relation — a method like save()/delete() would run as a side effect of
+        // a read query. Only proceed when the dev has vouched for the path.
+        if ($this->sortableColumns === null) {
+            Log::warning(sprintf(
+                'SortApplier dropped sort_by [%s]: dot-notation sort requires an explicit whitelist via DatatableApi::withSortableColumns().',
+                $sortField,
+            ));
 
-                    $relation = $currentModel->$part();
-                    if (! ($relation instanceof BelongsTo)) {
-                        $builder->orderBy($sortField, $sortDirection);
+            return;
+        }
 
-                        return;
-                    }
+        if (! ($builder instanceof EloquentBuilder || $builder instanceof Relation)) {
+            Log::warning(sprintf(
+                'SortApplier dropped sort_by [%s]: dot-notation sort is only supported on Eloquent builders.',
+                $sortField,
+            ));
 
-                    $relatedModel = $relation->getRelated();
-                    $relatedTable = $relatedModel->getTable();
-                    $relatedAlias = $part;
+            return;
+        }
 
-                    $builder->leftJoin(
-                        "{$relatedTable} as {$relatedAlias}",
-                        "{$relatedAlias}.{$relatedModel->getKeyName()}",
-                        '=',
-                        "{$currentTable}.{$relation->getForeignKeyName()}"
-                    );
+        $parts = explode('.', $sortField);
+        $column = array_pop($parts);
 
-                    $currentModel = $relatedModel;
-                    $currentTable = $relatedAlias;
-                }
+        $model = $builder->getModel();
+        $currentModel = $model;
+        $currentTable = $model->getTable();
+        $relatedAlias = '';
 
-                $builder->orderBy("{$relatedAlias}.{$column}", $sortDirection);
+        foreach ($parts as $part) {
+            $relation = $this->resolveBelongsTo($currentModel, $part);
 
-                if (empty($builder->getQuery()->columns)) {
-                    $builder->select("{$model->getTable()}.*");
-                }
+            if ($relation === null) {
+                Log::warning(sprintf(
+                    'SortApplier dropped sort_by [%s]: segment [%s] is not a BelongsTo relation.',
+                    $sortField,
+                    $part,
+                ));
 
                 return;
             }
+
+            $relatedModel = $relation->getRelated();
+            $relatedTable = $relatedModel->getTable();
+            $relatedAlias = $part;
+
+            $builder->leftJoin(
+                "{$relatedTable} as {$relatedAlias}",
+                "{$relatedAlias}.{$relatedModel->getKeyName()}",
+                '=',
+                "{$currentTable}.{$relation->getForeignKeyName()}"
+            );
+
+            $currentModel = $relatedModel;
+            $currentTable = $relatedAlias;
         }
 
-        $builder->orderBy($sortField, $sortDirection);
+        $builder->orderBy("{$relatedAlias}.{$column}", $sortDirection);
+
+        if (empty($builder->getQuery()->columns)) {
+            $builder->select("{$model->getTable()}.*");
+        }
+    }
+
+    /**
+     * Resolve a segment to a BelongsTo relation, or null. Safe by construction:
+     * only reached for whitelisted, dev-declared paths, and mirrors the search
+     * side (try/catch + instanceof) instead of trusting method_exists alone.
+     */
+    private function resolveBelongsTo(Model $model, string $name): ?BelongsTo
+    {
+        if (! method_exists($model, $name)) {
+            return null;
+        }
+
+        try {
+            $relation = $model->{$name}();
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $relation instanceof BelongsTo ? $relation : null;
     }
 }

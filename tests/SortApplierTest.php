@@ -2,6 +2,7 @@
 
 use AleMian95\Datatable\DatatableRequest;
 use AleMian95\Datatable\SortApplier;
+use AleMian95\Datatable\Tests\Fixtures\Models\TestPost;
 use AleMian95\Datatable\Tests\Fixtures\Models\TestUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -59,4 +60,40 @@ it('always allows a custom sort key regardless of the whitelist', function () {
     (new SortApplier($custom, ['email']))->apply($builder, makeSortRequest(['sort_by' => 'full_name']));
 
     expect($called)->toBeTrue();
+});
+
+it('drops dot-notation sort when no whitelist is declared (no arbitrary method call)', function () {
+    Log::shouldReceive('warning')->once();
+
+    $builder = TestPost::query();
+
+    // Without a whitelist this must NOT invoke save()/delete()/etc on the model.
+    (new SortApplier)->apply($builder, makeSortRequest(['sort_by' => 'save.id']));
+
+    expect($builder->toSql())->not->toContain('order by')->not->toContain('join');
+});
+
+it('joins and sorts on a whitelisted BelongsTo dot-notation column', function () {
+    $builder = TestPost::query();
+
+    (new SortApplier([], ['author.first_name']))
+        ->apply($builder, makeSortRequest(['sort_by' => 'author.first_name', 'sort_order' => 'desc']));
+
+    $sql = $builder->toSql();
+
+    expect($sql)
+        ->toContain('left join "test_users" as "author"')
+        ->toContain('"author"."first_name" desc')
+        ->toContain('"test_posts".*');
+});
+
+it('drops a whitelisted dotted sort whose segment is not a BelongsTo relation', function () {
+    Log::shouldReceive('warning')->once();
+
+    $builder = TestPost::query();
+
+    // "title" is a column, not a relation.
+    (new SortApplier([], ['title.x']))->apply($builder, makeSortRequest(['sort_by' => 'title.x']));
+
+    expect($builder->toSql())->not->toContain('order by')->not->toContain('join');
 });
