@@ -2,6 +2,16 @@
 
 All notable changes to `LaravelDatatable` will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- React package re-exports the common TanStack Table types and helper (`ColumnDef`, `CellContext`, `HeaderContext`, `Row`, `createColumnHelper`) so consumers can author columns and cells importing only from this package — required under pnpm's strict `node_modules`, convenient everywhere else.
+
+### Changed
+
+- The Composer package and the React npm package are now versioned in **lockstep**: both are released together under the same version number, starting at `0.1.0`.
+
 ## v0.0.3 - 2026-07-03
 
 ### Security
