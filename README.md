@@ -30,6 +30,16 @@ composer require alemian95/laraveldatatable
 
 The service provider is auto-discovered (`AleMian95\Datatable\DatatableServiceProvider`) — no manual registration required.
 
+### Frontend (React)
+
+If you want the ready-made React datatable, run the install command:
+
+```bash
+php artisan datatable:install
+```
+
+It installs the `@alemian95/laraveldatatable-react` npm package (detecting npm / pnpm / yarn / bun from your lockfile), publishes the config file, warns about missing peer dependencies (`react`, `react-dom`, `tailwindcss`), and prints the remaining setup steps. The frontend is optional — the backend works on its own. See the [React package README](react/README.md) for the component API.
+
 Optionally, publish the config file to override defaults:
 
 ```bash

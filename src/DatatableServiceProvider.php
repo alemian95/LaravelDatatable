@@ -2,6 +2,7 @@
 
 namespace AleMian95\Datatable;
 
+use AleMian95\Datatable\Commands\InstallCommand;
 use AleMian95\Datatable\Contracts\RelationSearchResolver;
 use AleMian95\Datatable\Contracts\SearchColumnResolver;
 use AleMian95\Datatable\Search\DefaultRelationSearchResolver;
@@ -18,7 +19,8 @@ class DatatableServiceProvider extends PackageServiceProvider
     {
         $package
             ->name('laraveldatatable')
-            ->hasConfigFile();
+            ->hasConfigFile()
+            ->hasCommand(InstallCommand::class);
     }
 
     public function registeringPackage(): void

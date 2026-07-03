@@ -2,6 +2,12 @@
 
 All notable changes to `LaravelDatatable` will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- `datatable:install` artisan command: installs the `@alemian95/laraveldatatable-react` npm package (detecting npm/pnpm/yarn/bun), publishes the config, warns about missing peer dependencies and prints the setup steps.
+
 ## v0.0.1 - 2026-07-02
 
 First tagged release.
