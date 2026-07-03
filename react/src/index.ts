@@ -1,9 +1,16 @@
 export { DatatableProvider, useDatatableConfig } from './provider'
 export { DataTable, type DataTableProps } from './data-table'
 export { useDatatable } from './use-datatable'
-// Re-exported so consumers can type their columns without importing
-// @tanstack/react-table directly.
-export type { ColumnDef } from '@tanstack/react-table'
+// Re-exported so consumers can author columns and cells without importing
+// @tanstack/react-table directly — required under pnpm's strict node_modules,
+// convenient everywhere else.
+export { createColumnHelper } from '@tanstack/react-table'
+export type {
+  ColumnDef,
+  CellContext,
+  HeaderContext,
+  Row,
+} from '@tanstack/react-table'
 export type {
   DatatableConfig,
   HeadersResolver,

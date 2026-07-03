@@ -4,8 +4,13 @@ All notable changes to `LaravelDatatable` will be documented in this file.
 
 ## Unreleased
 
+### Added
+
+- React package re-exports the common TanStack Table types and helper (`ColumnDef`, `CellContext`, `HeaderContext`, `Row`, `createColumnHelper`) so consumers can author columns and cells importing only from this package — required under pnpm's strict `node_modules`, convenient everywhere else.
+
 ### Changed
 
+- The Composer package and the React npm package are now versioned in **lockstep**: both are released together under the same version number, starting at `0.1.0`.
 - **Support floor raised**: minimum PHP is now `^8.3` and minimum Laravel is `^12.0` (Laravel 11 dropped). Laravel 12 and 13 on PHP 8.3 and 8.4 are covered by CI. Existing code is unaffected — the package already used no PHP 8.4-only syntax.
 
 ### Fixed

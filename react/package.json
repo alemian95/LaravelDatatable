@@ -1,6 +1,6 @@
 {
   "name": "@alemian95/laraveldatatable-react",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "description": "React datatable for the alemian95/laraveldatatable Laravel package.",
   "license": "MIT",
   "repository": {
