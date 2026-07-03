@@ -2,7 +2,7 @@
 
 All notable changes to `LaravelDatatable` will be documented in this file.
 
-## Unreleased
+## v0.1.0 - 2026-07-03
 
 ### Added
 
@@ -16,6 +16,7 @@ All notable changes to `LaravelDatatable` will be documented in this file.
 ### Fixed
 
 - README examples now use `(new DatatableApi())->...` instead of the PHP 8.4-only `new DatatableApi()->...` form, so they parse on PHP 8.3.
+- Install docs (README and the `datatable:install` output) now cover Tailwind v4's `@source` directive alongside the v3 `content` glob, and note pnpm's strict `node_modules`.
 
 ## v0.0.3 - 2026-07-03
 
