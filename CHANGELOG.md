@@ -2,11 +2,15 @@
 
 All notable changes to `LaravelDatatable` will be documented in this file.
 
-## Unreleased
+## v0.0.2 - 2026-07-03
 
 ### Added
 
 - `datatable:install` artisan command: installs the `@alemian95/laraveldatatable-react` npm package (detecting npm/pnpm/yarn/bun), publishes the config, warns about missing peer dependencies and prints the setup steps.
+
+### Changed
+
+- Companion React package `@alemian95/laraveldatatable-react` reaches `0.0.2`: `@tanstack/react-query` moved from a peer to a regular dependency (installed automatically), and `DatatableProvider` now owns an internal `QueryClient`, so consumers no longer set up `@tanstack/react-query` themselves.
 
 ## v0.0.1 - 2026-07-02
 
