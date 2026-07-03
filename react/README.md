@@ -27,11 +27,25 @@ share your app's client instead, pass it: `<DatatableProvider queryClient={yourC
 
 ### Tailwind
 
-The components ship pre-written utility classes. Add the package's `dist` to your Tailwind
-`content` so those classes are generated:
+The components ship pre-written utility classes, so Tailwind must scan the package's `dist`
+to generate them. Tailwind ignores `node_modules` by default — point it at the package
+explicitly, matching your Tailwind major version.
+
+**Tailwind v4** (CSS-first config — there is no `tailwind.config.js`). Add a `@source` next
+to your import:
+
+```css
+@import "tailwindcss";
+@source "../../node_modules/@alemian95/laraveldatatable-react/dist";
+```
+
+The `@source` path is resolved relative to the CSS file. Adjust the `../` depth so it points
+at your project's `node_modules` — e.g. from `resources/css/app.css` in a Laravel app it is
+`../../node_modules/...`.
+
+**Tailwind v3** (`tailwind.config.js`). Add the package to `content`:
 
 ```js
-// tailwind.config.js
 export default {
   content: [
     './src/**/*.{ts,tsx}',
