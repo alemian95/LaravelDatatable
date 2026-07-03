@@ -12,6 +12,15 @@ All notable changes to `LaravelDatatable` will be documented in this file.
   - `ColumnMeta` is now type-safe via module augmentation — a typo in `meta` is a compile error, not a silent no-op.
   - Sortable headers are keyboard-accessible `<button>`s with `aria-sort`.
   - Bulk actions guard against double-submit and swallowed errors; filter selects can be cleared back to "Any"; a `'use client'` banner is emitted for the Next.js App Router; `baseUrl` is part of the query key; minor a11y and packaging fixes.
+### Security
+
+- `SortApplier` no longer invokes arbitrary model methods from a dot-notation `sort_by`. Dot-notation sort now requires an explicit whitelist (`DatatableApi::withSortableColumns(...)`); without one it is dropped with a warning instead of calling a client-named method (which could run side effects such as `save()`/`delete()`). Whitelisted relation segments are resolved with `try/catch` + `instanceof Relation`, mirroring the search side.
+- `sort_order` is now validated against `asc|desc` (case-insensitive, defaults to `asc`). Previously an arbitrary value reached `orderBy()` (500 on bad input) and was passed unsanitized to custom-sort closures that interpolate it into `orderByRaw()`.
+
+### Fixed
+
+- `search` and `sort_by` supplied as arrays (`?search[]=a`) no longer raise a `TypeError`; they are coerced to `null`.
+- An unresolvable dot-notation `sort_by` no longer emits broken SQL (`order by "a"."b"` on a missing alias); it is dropped with a warning.
 
 ## v0.0.2 - 2026-07-03
 
