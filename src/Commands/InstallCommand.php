@@ -89,8 +89,9 @@ class InstallCommand extends Command
     {
         $this->newLine();
         $this->components->info('Done. Next steps:');
-        $this->line('  1. Add the package to your Tailwind <options=bold>content</>:');
-        $this->line('       ./node_modules/'.self::NPM_PACKAGE.'/dist/**/*.js');
+        $this->line('  1. Let Tailwind scan the package (it ignores <options=bold>node_modules</> by default):');
+        $this->line('       <options=bold>Tailwind v4</> — in your CSS: <fg=gray>@source \'../../node_modules/'.self::NPM_PACKAGE.'/dist\';</>');
+        $this->line('       <options=bold>Tailwind v3</> — in tailwind.config content: <fg=gray>\'./node_modules/'.self::NPM_PACKAGE.'/dist/**/*.js\'</>');
         $this->line('  2. Render a table:');
         $this->line('       <fg=gray>import { DatatableProvider, DataTable } from \''.self::NPM_PACKAGE.'\'</>');
         $this->line('  3. See the package README for the full API and the request contract.');
