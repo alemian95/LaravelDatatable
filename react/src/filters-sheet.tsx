@@ -1,9 +1,13 @@
 import { useState } from 'react'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import type { FilterDef, FilterValue } from './types'
+
+// Radix Select forbids an empty-string item value, so "clear this filter" needs
+// a sentinel that maps back to '' (which buildParams then omits).
+const ANY = '__any__'
 
 export interface FiltersSheetProps {
   filters: FilterDef[]
@@ -34,6 +38,7 @@ export function FiltersSheet({ filters, values, onApply, activeCount }: FiltersS
       <SheetContent side="right">
         <SheetHeader>
           <SheetTitle>Filters</SheetTitle>
+          <SheetDescription>Narrow the results with extra conditions.</SheetDescription>
         </SheetHeader>
         <div className="mt-4 space-y-4">
           {filters.map((f) => (
@@ -52,11 +57,15 @@ export function FiltersSheet({ filters, values, onApply, activeCount }: FiltersS
               )}
 
               {f.type === 'select' && (
-                <Select value={(draft[f.id] as string) ?? ''} onValueChange={(v) => set(f.id, v)}>
+                <Select
+                  value={((draft[f.id] as string) || undefined) ?? undefined}
+                  onValueChange={(v) => set(f.id, v === ANY ? '' : v)}
+                >
                   <SelectTrigger id={`f-${f.id}`} aria-label={f.label} className="w-full">
                     <SelectValue placeholder="Any" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value={ANY}>Any</SelectItem>
                     {f.options.map((o) => (
                       <SelectItem key={o.value} value={o.value}>
                         {o.label}

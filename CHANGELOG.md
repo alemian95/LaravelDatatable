@@ -2,6 +2,17 @@
 
 All notable changes to `LaravelDatatable` will be documented in this file.
 
+## Unreleased
+
+### Changed
+
+- React package `@alemian95/laraveldatatable-react` → `0.0.3`. Fixes from a code review:
+  - **Row selection is now identity-based** (`getRowId`, default `row.id`) and cleared on page/search/filter change — bulk actions no longer target the wrong records after paginating.
+  - **The table resets to page 1** when the search term or filters change (no more empty page beyond the last).
+  - `ColumnMeta` is now type-safe via module augmentation — a typo in `meta` is a compile error, not a silent no-op.
+  - Sortable headers are keyboard-accessible `<button>`s with `aria-sort`.
+  - Bulk actions guard against double-submit and swallowed errors; filter selects can be cleared back to "Any"; a `'use client'` banner is emitted for the Next.js App Router; `baseUrl` is part of the query key; minor a11y and packaging fixes.
+
 ## v0.0.2 - 2026-07-03
 
 ### Added

@@ -1,3 +1,15 @@
+import type { RowData } from '@tanstack/react-table'
+
+// Augment TanStack's ColumnMeta so `columns[i].meta` is typed for the consumer:
+// a typo like `serchable` is now a compile error instead of a silent no-op.
+declare module '@tanstack/react-table' {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface ColumnMeta<TData extends RowData, TValue> {
+    searchable?: boolean
+    sortKey?: string
+  }
+}
+
 export type HeadersResolver =
   | HeadersInit
   | (() => HeadersInit | Promise<HeadersInit>)

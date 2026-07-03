@@ -26,6 +26,7 @@ export interface ToolbarProps<T> {
 export function Toolbar<T>(props: ToolbarProps<T>) {
   const { table, search, onSearch, filters, filterValues, onFilters, bulkActions, selectedRows, onActionDone } = props
   const [action, setAction] = useState('')
+  const [pending, setPending] = useState(false)
 
   const activeFilters = Object.values(filterValues).filter((v) =>
     typeof v === 'object' ? v.from || v.to : v !== '' && v != null,
@@ -33,9 +34,14 @@ export function Toolbar<T>(props: ToolbarProps<T>) {
 
   async function apply() {
     const chosen = bulkActions?.find((a) => a.value === action)
-    if (!chosen) return
-    await chosen.handler(selectedRows)
-    onActionDone()
+    if (!chosen || pending) return
+    setPending(true)
+    try {
+      await chosen.handler(selectedRows)
+      onActionDone()
+    } finally {
+      setPending(false)
+    }
   }
 
   return (
@@ -50,7 +56,8 @@ export function Toolbar<T>(props: ToolbarProps<T>) {
               aria-label="Bulk action"
               value={action}
               onChange={(e) => setAction(e.target.value)}
-              className="h-9 rounded-md border border-gray-200 bg-white px-2 text-sm dark:border-gray-800 dark:bg-gray-950 dark:text-gray-50"
+              disabled={pending}
+              className="h-9 rounded-md border border-gray-200 bg-white px-2 text-sm disabled:opacity-50 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-50"
             >
               <option value="">Actions…</option>
               {bulkActions.map((a) => (
@@ -59,7 +66,9 @@ export function Toolbar<T>(props: ToolbarProps<T>) {
                 </option>
               ))}
             </select>
-            <Button onClick={apply}>Apply</Button>
+            <Button onClick={apply} disabled={pending || action === ''}>
+              {pending ? 'Applying…' : 'Apply'}
+            </Button>
           </>
         ) : (
           <Input
