@@ -17,8 +17,8 @@ We highly appreciate you sending us a postcard from your hometown, mentioning wh
 
 ## Requirements
 
-- PHP `^8.4`
-- Laravel `^11.0 || ^12.0 || ^13.0`
+- PHP `^8.3`
+- Laravel `^12.0 || ^13.0`
 
 ## Installation
 
@@ -90,7 +90,7 @@ use App\Models\User;
 
 public function index()
 {
-    return new DatatableApi()
+    return (new DatatableApi())
         ->fromQuery(User::query());
 }
 ```
@@ -160,7 +160,7 @@ use App\Models\User;
 
 public function index()
 {
-    return new DatatableApi()
+    return (new DatatableApi())
         ->fromQuery(
             User::query()->with('profile', 'role')
         )
@@ -202,7 +202,7 @@ class User extends Model implements HasSearchableColumns
 Example with the per-request override (works for both Eloquent and raw `QueryBuilder`):
 
 ```php
-return new DatatableApi()
+return (new DatatableApi())
     ->fromQuery(DB::table('users'))
     ->withSearchableColumns(['name', 'email']);
 ```
@@ -224,7 +224,7 @@ When `search_columns` contains a dot — `author.name`, `tags.label` — the pac
 **On Eloquent builders** the relation is auto-discovered from the model. No extra configuration is needed:
 
 ```php
-return new DatatableApi()
+return (new DatatableApi())
     ->fromQuery(Book::query())
     ->withSearchableColumns(['title', 'author.name', 'tags.label']);
 ```
@@ -236,7 +236,7 @@ Supported relation types via auto-discovery: `BelongsTo`, `HasOne`, `HasMany`, `
 ```php
 use AleMian95\Datatable\Search\RelationSearch;
 
-return new DatatableApi()
+return (new DatatableApi())
     ->fromQuery(DB::table('books'))
     ->withSearchableColumns(['title', 'author.name'])
     ->withRelationSearch([
