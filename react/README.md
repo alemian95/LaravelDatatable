@@ -15,11 +15,15 @@ npm install @alemian95/laraveldatatable-react
 
 ### Peer dependencies
 
-Provide these in your app (they are not bundled):
+Only these — every React app already has them:
 
 - `react`, `react-dom` (^18 or ^19)
-- `@tanstack/react-query` (^5) — wrap your app in a `QueryClientProvider`
 - `tailwindcss` (^3 or ^4)
+
+Everything else (`@tanstack/react-query`, `@tanstack/react-table`, Radix) is a regular
+dependency and gets installed automatically. You do **not** need to install or configure
+`@tanstack/react-query` yourself — `DatatableProvider` owns an internal `QueryClient`. To
+share your app's client instead, pass it: `<DatatableProvider queryClient={yourClient} …>`.
 
 ### Tailwind
 
@@ -39,11 +43,10 @@ export default {
 ## Usage
 
 ```tsx
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { DatatableProvider, DataTable, type FilterDef, type BulkAction } from '@alemian95/laraveldatatable-react'
-import type { ColumnDef } from '@tanstack/react-table'
-
-const queryClient = new QueryClient()
+import {
+  DatatableProvider, DataTable,
+  type ColumnDef, type FilterDef, type BulkAction,
+} from '@alemian95/laraveldatatable-react'
 
 type User = { id: number; name: string; email: string; created_at: string }
 
@@ -67,21 +70,19 @@ const bulkActions: BulkAction<User>[] = [
 
 export function Users() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <DatatableProvider config={{
-        baseUrl: '/api',
-        // Static object, or a (possibly async) function so tokens can refresh.
-        headers: async () => ({ Authorization: `Bearer ${await getToken()}` }),
-      }}>
-        <DataTable<User>
-          endpoint="/users"
-          columns={columns}
-          defaultPerPage={15}
-          filters={filters}
-          bulkActions={bulkActions}
-        />
-      </DatatableProvider>
-    </QueryClientProvider>
+    <DatatableProvider config={{
+      baseUrl: '/api',
+      // Static object, or a (possibly async) function so tokens can refresh.
+      headers: async () => ({ Authorization: `Bearer ${await getToken()}` }),
+    }}>
+      <DataTable<User>
+        endpoint="/users"
+        columns={columns}
+        defaultPerPage={15}
+        filters={filters}
+        bulkActions={bulkActions}
+      />
+    </DatatableProvider>
   )
 }
 ```
@@ -97,8 +98,8 @@ interface DatatableConfig {
 }
 ```
 
-The provider does not create a `QueryClient` — your app already provides one via
-`QueryClientProvider`.
+The provider owns an internal `QueryClient` by default. Pass `queryClient` to share your
+app's own client with the tables.
 
 ### `DataTable`
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient } from '@tanstack/react-query'
 import type { ColumnDef } from '@tanstack/react-table'
 import { DatatableProvider } from './provider'
 import { DataTable } from './data-table'
@@ -14,9 +14,9 @@ const columns: ColumnDef<User, unknown>[] = [
 function renderTable(ui: React.ReactElement) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
-    <QueryClientProvider client={client}>
-      <DatatableProvider config={{ baseUrl: 'https://api.test' }}>{ui}</DatatableProvider>
-    </QueryClientProvider>,
+    <DatatableProvider config={{ baseUrl: 'https://api.test' }} queryClient={client}>
+      {ui}
+    </DatatableProvider>,
   )
 }
 
