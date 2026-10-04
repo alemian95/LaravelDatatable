@@ -19,5 +19,7 @@ export type {
   FilterValue,
   BulkAction,
   PaginatorResponse,
+  PaginationMeta,
+  ResourceCollectionResponse,
   DatatableQuery,
 } from './types'

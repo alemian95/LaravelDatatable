@@ -2,6 +2,12 @@
 
 All notable changes to `LaravelDatatable` will be documented in this file.
 
+## Unreleased
+
+### Fixed
+
+- React: `useDatatable` / `DataTable` now read pagination from the `meta` envelope produced by `returnResource(...)`. Previously page count and total were 0 with an API Resource.
+
 ## v0.1.0 - 2026-07-03
 
 ### Added

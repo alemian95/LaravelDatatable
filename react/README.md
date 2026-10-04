@@ -155,8 +155,9 @@ The hook behind `DataTable`, exported for custom UIs. Returns
 | `sort_by`, `sort_order` (`asc`\|`desc`)   | header sort (`meta.sortKey` ?? column id) |
 | `filter[<id>]` / `filter[<id>][from\|to]` | filters slide-over                        |
 
-The expected response is a Laravel length-aware paginator
-(`data`, `current_page`, `last_page`, `per_page`, `total`).
+The expected response is either a Laravel length-aware paginator
+(`data`, `current_page`, `last_page`, `per_page`, `total`) or the `{ data, links, meta }`
+envelope produced by `returnResource(...)` — both are read transparently.
 
 ### Filters are emitted, not applied
 

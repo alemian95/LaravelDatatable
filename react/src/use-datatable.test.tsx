@@ -49,4 +49,25 @@ describe('useDatatable', () => {
     const init = (fetch as any).mock.calls[0][1]
     expect(init.headers).toEqual({ Authorization: 'Bearer tok' })
   })
+
+  it('reads pagination from the meta envelope of an API Resource collection', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        data: [{ id: 1, name: 'Jane' }],
+        links: { first: '…', last: '…', prev: null, next: '…' },
+        meta: { current_page: 1, last_page: 4, per_page: 15, total: 60 },
+      }),
+    })))
+
+    const { result } = renderHook(
+      () => useDatatable('/users', { page: 1, perPage: 15 }),
+      { wrapper: wrapper() },
+    )
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    expect(result.current.rows).toEqual([{ id: 1, name: 'Jane' }])
+    expect(result.current.pageCount).toBe(4)
+    expect(result.current.total).toBe(60)
+  })
 })

@@ -2,7 +2,12 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useDatatableConfig } from './provider'
 import { resolveHeaders } from './resolve-headers'
 import { buildParams } from './build-params'
-import type { DatatableQuery, PaginatorResponse } from './types'
+import type { DatatableQuery, PaginatorResponse, ResourceCollectionResponse } from './types'
+
+// Both envelopes the backend can emit: raw paginator, or returnResource().
+function toPaginator<T>(body: PaginatorResponse<T> | ResourceCollectionResponse<T>): PaginatorResponse<T> {
+  return 'meta' in body ? { data: body.data, ...body.meta } : body
+}
 
 export function useDatatable<T>(endpoint: string, query: DatatableQuery) {
   const config = useDatatableConfig()
@@ -15,7 +20,7 @@ export function useDatatable<T>(endpoint: string, query: DatatableQuery) {
       const url = `${config.baseUrl}${endpoint}?${buildParams(query).toString()}`
       const res = await fetch(url, { headers })
       if (!res.ok) throw new Error(`Request failed with status ${res.status}`)
-      return res.json()
+      return toPaginator<T>(await res.json())
     },
   })
 

@@ -37,12 +37,20 @@ export interface BulkAction<T> {
   handler: (selectedRows: T[]) => void | Promise<void>
 }
 
-export interface PaginatorResponse<T> {
-  data: T[]
+export interface PaginationMeta {
   current_page: number
   last_page: number
   per_page: number
   total: number
+}
+
+/** Raw Laravel length-aware paginator (no API Resource). */
+export type PaginatorResponse<T> = { data: T[] } & PaginationMeta
+
+/** `Resource::collection($paginator)` — pagination nested under `meta`. */
+export interface ResourceCollectionResponse<T> {
+  data: T[]
+  meta: PaginationMeta
 }
 
 export interface DatatableQuery {
