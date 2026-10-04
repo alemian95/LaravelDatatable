@@ -10,6 +10,7 @@ import {
 } from '@tanstack/react-table'
 import { useDatatable } from './use-datatable'
 import { Toolbar } from './toolbar'
+import { columnId, resolveSearchColumns } from './search-columns'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table'
 import { Button } from './ui/button'
 import { Checkbox } from './ui/checkbox'
@@ -28,12 +29,6 @@ export interface DataTableProps<T> {
    * actions rely on it to target the right records instead of a row index.
    */
   getRowId?: (row: T, index: number) => string
-}
-
-function columnId<T>(column: ColumnDef<T, unknown>): string {
-  if ('accessorKey' in column) return String(column.accessorKey)
-  if (column.id) return column.id
-  throw new Error('laraveldatatable: every column needs an accessorKey or an explicit id.')
 }
 
 // Default row identity: the conventional `id` field, falling back to the index
@@ -102,14 +97,12 @@ export function DataTable<T>({
     return [selectionColumn, ...columns]
   }, [columns, selectable])
 
-  const searchColumns = useMemo(
-    () =>
-      columns
-        .filter((c) => c.meta?.searchable)
-        .map(columnId)
-        .filter((id) => columnVisibility[id] !== false),
+  const searchScope = useMemo(
+    () => resolveSearchColumns(columns, columnVisibility),
     [columns, columnVisibility],
   )
+  // The typed term stays in state, so re-showing a searchable column re-applies it.
+  const effectiveSearch = searchScope.disabled ? '' : debouncedSearch
 
   const query: DatatableQuery = useMemo(() => {
     const sort = sorting[0]
@@ -117,15 +110,15 @@ export function DataTable<T>({
     return {
       page: pagination.pageIndex + 1,
       perPage: pagination.pageSize,
-      search: debouncedSearch || undefined,
+      search: effectiveSearch || undefined,
       // Only meaningful alongside a search term; omit otherwise to avoid a
       // redundant refetch when a column's visibility toggles.
-      searchColumns: debouncedSearch ? searchColumns : undefined,
+      searchColumns: effectiveSearch ? searchScope.columns : undefined,
       sortBy: sort ? (sortMeta?.sortKey ?? sort.id) : undefined,
       sortOrder: sort ? (sort.desc ? 'desc' : 'asc') : undefined,
       filters: filterValues,
     }
-  }, [pagination, sorting, debouncedSearch, searchColumns, filterValues, columns])
+  }, [pagination, sorting, effectiveSearch, searchScope, filterValues, columns])
 
   const { rows, pageCount, total, isLoading, isFetching, error, refetch } = useDatatable<T>(endpoint, query)
 
@@ -155,6 +148,7 @@ export function DataTable<T>({
         table={table}
         search={search}
         onSearch={setSearch}
+        searchDisabled={searchScope.disabled}
         filters={filters}
         filterValues={filterValues}
         onFilters={setFilterValues}

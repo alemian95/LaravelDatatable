@@ -15,6 +15,7 @@ export interface ToolbarProps<T> {
   table: Table<T>
   search: string
   onSearch: (v: string) => void
+  searchDisabled?: boolean
   filters?: FilterDef[]
   filterValues: Record<string, FilterValue>
   onFilters: (v: Record<string, FilterValue>) => void
@@ -24,7 +25,7 @@ export interface ToolbarProps<T> {
 }
 
 export function Toolbar<T>(props: ToolbarProps<T>) {
-  const { table, search, onSearch, filters, filterValues, onFilters, bulkActions, selectedRows, onActionDone } = props
+  const { table, search, onSearch, searchDisabled, filters, filterValues, onFilters, bulkActions, selectedRows, onActionDone } = props
   const [action, setAction] = useState('')
   const [pending, setPending] = useState(false)
 
@@ -72,9 +73,10 @@ export function Toolbar<T>(props: ToolbarProps<T>) {
           </>
         ) : (
           <Input
-            placeholder="Search…"
+            placeholder={searchDisabled ? 'Show a searchable column to search' : 'Search…'}
             value={search}
             onChange={(e) => onSearch(e.target.value)}
+            disabled={searchDisabled}
             className="max-w-xs"
           />
         )}

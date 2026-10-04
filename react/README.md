@@ -137,6 +137,10 @@ interface ColumnMeta {
 }
 ```
 
+Search targets the *visible* columns with `meta.searchable`. Hiding all of them disables the
+search box. If no column sets `meta.searchable`, `search_columns` is not sent and the backend's
+whitelist decides.
+
 ### `useDatatable`
 
 The hook behind `DataTable`, exported for custom UIs. Returns

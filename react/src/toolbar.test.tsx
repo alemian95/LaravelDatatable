@@ -28,4 +28,21 @@ describe('Toolbar', () => {
     expect(handler).toHaveBeenCalledWith([{ id: 1 }, { id: 2 }])
     expect(onActionDone).toHaveBeenCalled()
   })
+
+  it('disables the search input when no searchable column is visible', () => {
+    render(
+      <Toolbar
+        table={fakeTable}
+        search=""
+        onSearch={() => {}}
+        searchDisabled
+        filterValues={{}}
+        onFilters={() => {}}
+        selectedRows={[]}
+        onActionDone={() => {}}
+      />,
+    )
+    const input = screen.getByPlaceholderText('Show a searchable column to search') as HTMLInputElement
+    expect(input.disabled).toBe(true)
+  })
 })
