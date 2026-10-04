@@ -26,6 +26,11 @@ function lastUrl(): string {
   return calls[calls.length - 1]![0] as string
 }
 
+async function toggleColumn(id: string) {
+  await userEvent.click(screen.getByRole('button', { name: 'Columns' }))
+  await userEvent.click(await screen.findByRole('menuitemcheckbox', { name: id }))
+}
+
 beforeEach(() => {
   vi.stubGlobal(
     'fetch',
@@ -77,5 +82,37 @@ describe('DataTable state', () => {
     expect(screen.getByRole('button', { name: 'Name' })).toBeTruthy()
     const header = screen.getByRole('columnheader', { name: /name/i })
     expect(header.getAttribute('aria-sort')).toBe('none')
+  })
+  it('stops sending the term while every searchable column is hidden and re-applies it when one is shown', async () => {
+    renderTable(<DataTable<User> endpoint="/users" columns={columns} />)
+    await waitFor(() => expect(screen.getByText('Jane')).toBeTruthy())
+
+    await userEvent.type(screen.getByPlaceholderText('Search…'), 'ann')
+    await waitFor(() => expect(lastUrl()).toContain('search=ann&search_columns=name'))
+
+    await toggleColumn('name')
+    await waitFor(() => {
+      expect(lastUrl()).not.toContain('search=')
+      expect(lastUrl()).not.toContain('search_columns=')
+    })
+
+    await toggleColumn('name')
+    await waitFor(() => expect(lastUrl()).toContain('search=ann&search_columns=name'))
+  })
+
+  it('resets to page 1 when hiding the last searchable column changes the effective search', async () => {
+    renderTable(<DataTable<User> endpoint="/users" columns={columns} />)
+    await waitFor(() => expect(screen.getByText('Jane')).toBeTruthy())
+
+    await userEvent.type(screen.getByPlaceholderText('Search…'), 'ann')
+    await waitFor(() => expect(lastUrl()).toContain('search=ann'))
+    await userEvent.click(screen.getByText('Next'))
+    await waitFor(() => expect(lastUrl()).toMatch(/[?&]page=2(&|$)/))
+
+    await toggleColumn('name')
+    await waitFor(() => {
+      expect(lastUrl()).not.toContain('search=')
+      expect(lastUrl()).toMatch(/[?&]page=1(&|$)/)
+    })
   })
 })

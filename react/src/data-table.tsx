@@ -59,17 +59,27 @@ export function DataTable<T>({
     return () => clearTimeout(t)
   }, [search])
 
+  const searchScope = useMemo(
+    () => resolveSearchColumns(columns, columnVisibility),
+    [columns, columnVisibility],
+  )
+  // The typed term stays in state, so re-showing a searchable column re-applies it.
+  const effectiveSearch = searchScope.disabled ? '' : debouncedSearch
+  // What the backend actually searches: changes with the term and, while a term
+  // is set, with the visible searchable columns.
+  const searchKey = effectiveSearch ? `${effectiveSearch}|${searchScope.columns.join(',')}` : ''
+
   // Reset to the first page when the result set changes shape, so we never sit
   // on a page that no longer exists (e.g. searching while on page 8).
   useEffect(() => {
     setPagination((p) => (p.pageIndex === 0 ? p : { ...p, pageIndex: 0 }))
-  }, [debouncedSearch, filterValues])
+  }, [searchKey, filterValues])
 
   // Selection is per-page: clear it whenever the visible rows change, so a bulk
   // action can never target rows the user can no longer see.
   useEffect(() => {
     setRowSelection((s) => (Object.keys(s).length === 0 ? s : {}))
-  }, [pagination.pageIndex, pagination.pageSize, debouncedSearch, filterValues, sorting])
+  }, [pagination.pageIndex, pagination.pageSize, searchKey, filterValues, sorting])
 
   const selectable = !!bulkActions?.length
 
@@ -97,12 +107,6 @@ export function DataTable<T>({
     return [selectionColumn, ...columns]
   }, [columns, selectable])
 
-  const searchScope = useMemo(
-    () => resolveSearchColumns(columns, columnVisibility),
-    [columns, columnVisibility],
-  )
-  // The typed term stays in state, so re-showing a searchable column re-applies it.
-  const effectiveSearch = searchScope.disabled ? '' : debouncedSearch
 
   const query: DatatableQuery = useMemo(() => {
     const sort = sorting[0]
