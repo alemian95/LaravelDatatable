@@ -7,6 +7,7 @@ All notable changes to `LaravelDatatable` will be documented in this file.
 ### Fixed
 
 - React: `useDatatable` / `DataTable` now read pagination from the `meta` envelope produced by `returnResource(...)`. Previously page count and total were 0 with an API Resource.
+- Flat search columns are now qualified with the base table (or its alias), so searching while sorting by a `BelongsTo` relation no longer fails with an "ambiguous column" SQL error. The emitted SQL text changes (`"users"."name" like ?`); the result set does not.
 
 ## v0.1.0 - 2026-07-03
 

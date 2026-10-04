@@ -54,10 +54,13 @@ class SearchApplier implements QueryApplier
         }
 
         $term = $request->search;
+        $qualifier = $this->qualifierFor($builder);
 
-        $builder->where(function (Builder $query) use ($resolved, $term, $baseTable): void {
+        $builder->where(function (Builder $query) use ($resolved, $term, $baseTable, $qualifier): void {
             foreach ($resolved['flat'] as $field) {
-                $query->orWhereLike($field, "%{$term}%");
+                // Qualified so a join added later (relation sort, user joins) cannot
+                // make the column ambiguous.
+                $query->orWhereLike($qualifier === '' ? $field : "{$qualifier}.{$field}", "%{$term}%");
             }
 
             foreach ($resolved['dotted'] as $entry) {
@@ -156,6 +159,22 @@ class SearchApplier implements QueryApplier
      * Callers MUST guard the empty case before handing the result to a spec;
      * apply() does this by short-circuiting all dotted processing in that case.
      */
+    /**
+     * Name to qualify base-table columns with: the alias for "table as alias",
+     * the table otherwise, '' when the from clause is not a plain identifier.
+     * Unlike baseTableFor(), which needs the real table name to derive keys.
+     */
+    private function qualifierFor(Builder $builder): string
+    {
+        if ($builder instanceof QueryBuilder && is_string($builder->from)) {
+            $parts = preg_split('/\s+as\s+/i', $builder->from, 2);
+
+            return $parts[1] ?? $parts[0];
+        }
+
+        return $this->baseTableFor($builder);
+    }
+
     private function baseTableFor(Builder $builder): string
     {
         if ($builder instanceof EloquentBuilder) {

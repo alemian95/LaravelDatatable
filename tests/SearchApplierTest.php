@@ -3,6 +3,7 @@
 use AleMian95\Datatable\Concerns\HasSearchableColumns as HasSearchableColumnsTrait;
 use AleMian95\Datatable\Contracts\HasSearchableColumns;
 use AleMian95\Datatable\Contracts\SearchColumnResolver;
+use AleMian95\Datatable\DatatableApi;
 use AleMian95\Datatable\DatatableRequest;
 use AleMian95\Datatable\Search\DefaultRelationSearchResolver;
 use AleMian95\Datatable\Search\RelationSearch;
@@ -364,4 +365,42 @@ it('drops a multi-hop dotted column on raw even when a single-segment spec is de
     $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
 
     expect($builder->toSql())->toBe($beforeSql);
+});
+
+it('qualifies flat search columns so a relation-sort join does not make them ambiguous', function () {
+    $this->app->instance('request', Request::create('/', 'GET', [
+        'search' => 'x',
+        'sort_by' => 'author.first_name',
+    ]));
+    $user = TestUser::create(['first_name' => 'Ann', 'last_name' => 'B', 'email' => 'ann@test']);
+    TestPost::create(['test_user_id' => $user->id, 'title' => 'x marks', 'body' => 'y']);
+
+    $api = (new DatatableApi)
+        ->fromQuery(TestPost::query())
+        ->withSearchableColumns(['title', 'created_at'])
+        ->withSortableColumns(['author.first_name']);
+
+    $payload = json_decode(json_encode($api, JSON_THROW_ON_ERROR), true);
+
+    expect($payload['total'])->toBe(1);
+});
+
+it('qualifies flat search columns with the table alias on a raw aliased query', function () {
+    $resolver = Mockery::mock(SearchColumnResolver::class);
+    $resolver->shouldReceive('resolve')->once()->andReturn(['first_name']);
+
+    $builder = DB::table('test_users as u');
+    (new SearchApplier($resolver))->apply($builder, makeApplierRequest(['search' => 'jane']));
+
+    expect($builder->toSql())->toContain('"u"."first_name"');
+});
+
+it('leaves flat search columns unqualified when the base table cannot be inferred', function () {
+    $resolver = Mockery::mock(SearchColumnResolver::class);
+    $resolver->shouldReceive('resolve')->once()->andReturn(['first_name']);
+
+    $builder = DB::query()->fromSub(DB::table('test_users'), 'sub');
+    (new SearchApplier($resolver))->apply($builder, makeApplierRequest(['search' => 'jane']));
+
+    expect($builder->toSql())->toContain('"first_name" like');
 });
