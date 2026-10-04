@@ -404,3 +404,25 @@ it('leaves flat search columns unqualified when the base table cannot be inferre
 
     expect($builder->toSql())->toContain('"first_name" like');
 });
+
+it('qualifies flat search columns with the from alias of an Eloquent builder', function () {
+    TestUser::create(['first_name' => 'Jane', 'last_name' => 'Doe', 'email' => 'jane@test']);
+    $resolver = Mockery::mock(SearchColumnResolver::class);
+    $resolver->shouldReceive('resolve')->once()->andReturn(['first_name']);
+
+    $builder = TestUser::from('test_users as u');
+    (new SearchApplier($resolver))->apply($builder, makeApplierRequest(['search' => 'jane']));
+
+    expect($builder->count())->toBe(1);
+});
+
+it('leaves flat search columns unqualified on an Eloquent builder whose from is a subquery', function () {
+    TestUser::create(['first_name' => 'Jane', 'last_name' => 'Doe', 'email' => 'jane@test']);
+    $resolver = Mockery::mock(SearchColumnResolver::class);
+    $resolver->shouldReceive('resolve')->once()->andReturn(['first_name']);
+
+    $builder = TestUser::query()->fromSub(DB::table('test_users'), 'sub');
+    (new SearchApplier($resolver))->apply($builder, makeApplierRequest(['search' => 'jane']));
+
+    expect($builder->count())->toBe(1);
+});

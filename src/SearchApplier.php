@@ -159,22 +159,6 @@ class SearchApplier implements QueryApplier
      * Callers MUST guard the empty case before handing the result to a spec;
      * apply() does this by short-circuiting all dotted processing in that case.
      */
-    /**
-     * Name to qualify base-table columns with: the alias for "table as alias",
-     * the table otherwise, '' when the from clause is not a plain identifier.
-     * Unlike baseTableFor(), which needs the real table name to derive keys.
-     */
-    private function qualifierFor(Builder $builder): string
-    {
-        if ($builder instanceof QueryBuilder && is_string($builder->from)) {
-            $parts = preg_split('/\s+as\s+/i', $builder->from, 2);
-
-            return $parts[1] ?? $parts[0];
-        }
-
-        return $this->baseTableFor($builder);
-    }
-
     private function baseTableFor(Builder $builder): string
     {
         if ($builder instanceof EloquentBuilder) {
@@ -191,6 +175,31 @@ class SearchApplier implements QueryApplier
         }
 
         return '';
+    }
+
+    /**
+     * Name to qualify base-table columns with, read from the from clause the
+     * query actually runs (Eloquent and relations included): the alias for
+     * "table as alias", the table otherwise, '' when the from clause is not a
+     * plain identifier (subquery). Unlike baseTableFor(), which needs the real
+     * table name to derive keys.
+     */
+    private function qualifierFor(Builder $builder): string
+    {
+        $from = match (true) {
+            $builder instanceof QueryBuilder => $builder->from,
+            $builder instanceof EloquentBuilder => $builder->getQuery()->from,
+            $builder instanceof Relation => $builder->getBaseQuery()->from,
+            default => null,
+        };
+
+        if (! is_string($from)) {
+            return '';
+        }
+
+        $parts = preg_split('/\s+as\s+/i', $from, 2);
+
+        return $parts[1] ?? $parts[0];
     }
 }
 
