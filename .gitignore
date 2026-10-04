@@ -31,3 +31,7 @@ testbench.yaml
 /docs/*
 !/docs/superpowers/
 /coverage
+
+# Claude Code local state
+/.claude/settings.local.json
+/.claude/worktrees/
