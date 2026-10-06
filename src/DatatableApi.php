@@ -28,6 +28,9 @@ final class DatatableApi implements JsonSerializable, Responsable
 
     private DatatableRequest $request;
 
+    /** Base of the pagination links when a request was passed explicitly; otherwise paginate() resolves it. */
+    private ?string $paginationPath;
+
     /** @var array<string, \Closure> */
     private array $filters = [];
 
@@ -66,6 +69,7 @@ final class DatatableApi implements JsonSerializable, Responsable
         }
 
         $this->request = DatatableRequest::fromRequest($request ?? request());
+        $this->paginationPath = $request?->url();
     }
 
     /**
@@ -221,8 +225,11 @@ final class DatatableApi implements JsonSerializable, Responsable
             Log::info($builder->toRawSql());
         }
 
-        $paginator = $builder->paginate($this->request->perPage, ['*'], 'page', $this->request->page)
-            ->withPath($this->request->url);
+        $paginator = $builder->paginate($this->request->perPage, ['*'], 'page', $this->request->page);
+
+        if ($this->paginationPath !== null) {
+            $paginator->withPath($this->paginationPath);
+        }
 
         return $this->resourceClass === null ? $paginator : $this->resourceClass::collection($paginator);
     }
