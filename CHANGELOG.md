@@ -4,6 +4,15 @@ All notable changes to `LaravelDatatable` will be documented in this file.
 
 ## Unreleased
 
+### Added
+
+- `DatatableApi::for($query, ?Request $request = null)` as the entry point; an explicit request also drives the page number.
+- `DatatableApi` is `Responsable` and has a public `toPaginator()`; each execution runs on a clone of the builder, so it can run more than once.
+
+### Deprecated
+
+- `new DatatableApi()` + `fromQuery()`: use `DatatableApi::for($query)`. Removed in 1.0.
+
 ### Fixed
 
 - `%`, `_`, `\` and `!` in the search term are matched literally. Previously `search=%` returned every row. The emitted SQL changes to `"col" like ? escape '!'` (`ilike` on Postgres).

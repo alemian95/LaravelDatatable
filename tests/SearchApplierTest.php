@@ -391,8 +391,7 @@ it('qualifies flat search columns so a relation-sort join does not make them amb
     $user = TestUser::create(['first_name' => 'Ann', 'last_name' => 'B', 'email' => 'ann@test']);
     TestPost::create(['test_user_id' => $user->id, 'title' => 'x marks', 'body' => 'y']);
 
-    $api = (new DatatableApi)
-        ->fromQuery(TestPost::query())
+    $api = DatatableApi::for(TestPost::query())
         ->withSearchableColumns(['title', 'created_at'])
         ->withSortableColumns(['author.first_name']);
 

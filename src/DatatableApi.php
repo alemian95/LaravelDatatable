@@ -7,10 +7,17 @@ use AleMian95\Datatable\Contracts\RelationSearchResolver;
 use AleMian95\Datatable\Contracts\SearchColumnResolver;
 use AleMian95\Datatable\Search\RelationSearch;
 use Illuminate\Contracts\Database\Query\Builder;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Contracts\Support\Responsable;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Resources\Json\ResourceCollection;
 use Illuminate\Support\Facades\Log;
 use JsonSerializable;
+use Symfony\Component\HttpFoundation\Response;
 
-class DatatableApi implements JsonSerializable
+class DatatableApi implements JsonSerializable, Responsable
 {
     protected Builder $builder;
 
@@ -33,16 +40,32 @@ class DatatableApi implements JsonSerializable
     /** @var array<int, string>|null */
     protected ?array $apiDeclaredSortColumns = null;
 
-    protected bool $hasResource = false;
+    /** @var class-string<JsonResource>|null */
+    protected ?string $resourceClass = null;
 
     /**
-     * @var class-string
+     * @internal Use DatatableApi::for(). The argument-less form is deprecated.
      */
-    protected string $resourceClass;
-
-    public function __construct()
+    public function __construct(?Builder $query = null, ?Request $request = null)
     {
-        $this->request = DatatableRequest::fromRequest(request());
+        if ($query === null) {
+            trigger_error(
+                'new DatatableApi() + fromQuery() is deprecated and will be removed in 1.0; use DatatableApi::for($query).',
+                E_USER_DEPRECATED,
+            );
+        } else {
+            $this->builder = $query;
+        }
+
+        $this->request = DatatableRequest::fromRequest($request ?? request());
+    }
+
+    /**
+     * Entry point. Without an explicit request, the current one is read now.
+     */
+    public static function for(Builder $query, ?Request $request = null): self
+    {
+        return new self($query, $request);
     }
 
     /**
@@ -115,6 +138,8 @@ class DatatableApi implements JsonSerializable
     }
 
     /**
+     * @deprecated Use DatatableApi::for($query). Removed in 1.0.
+     *
      * @return $this
      */
     public function fromQuery(Builder $query): self
@@ -136,20 +161,57 @@ class DatatableApi implements JsonSerializable
     }
 
     /**
-     * @param  class-string  $resourceClass
+     * @param  class-string<JsonResource>  $resourceClass
      * @return $this
      */
     public function returnResource(string $resourceClass): self
     {
-        $this->hasResource = true;
         $this->resourceClass = $resourceClass;
 
         return $this;
     }
 
+    /**
+     * Runs the query on a clone of the builder, so calling it again (or
+     * serializing twice) never applies search and sort twice.
+     */
+    public function toPaginator(): LengthAwarePaginator|ResourceCollection
+    {
+        $builder = clone $this->builder;
+
+        foreach ($this->appliers() as $applier) {
+            $applier->apply($builder, $this->request);
+        }
+
+        if (config('laraveldatatable.debug.log_sql', false)) {
+            Log::info($builder->toRawSql());
+        }
+
+        $paginator = $builder->paginate($this->request->perPage, ['*'], 'page', $this->request->page);
+
+        return $this->resourceClass === null ? $paginator : $this->resourceClass::collection($paginator);
+    }
+
+    public function toResponse($request): Response
+    {
+        $result = $this->toPaginator();
+
+        return $result instanceof ResourceCollection
+            ? $result->toResponse($request)
+            : new JsonResponse($result);
+    }
+
     public function jsonSerialize(): mixed
     {
-        $appliers = [
+        return $this->toPaginator();
+    }
+
+    /**
+     * @return array<int, QueryApplier>
+     */
+    private function appliers(): array
+    {
+        return [
             new SearchApplier(
                 app(SearchColumnResolver::class),
                 $this->customSearch,
@@ -161,23 +223,5 @@ class DatatableApi implements JsonSerializable
             ...$this->appliers,
             new KeyTiebreakerApplier,
         ];
-
-        foreach ($appliers as $applier) {
-            $applier->apply($this->builder, $this->request);
-        }
-
-        if (config('laraveldatatable.debug.log_sql', false)) {
-            Log::info($this->builder->toRawSql());
-        }
-
-        $paginator = $this->builder->paginate($this->request->perPage);
-
-        if ($this->hasResource) {
-            $resource = $this->resourceClass;
-
-            return $resource::collection($paginator);
-        }
-
-        return $paginator;
     }
 }
