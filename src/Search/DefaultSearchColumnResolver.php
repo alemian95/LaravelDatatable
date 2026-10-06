@@ -14,6 +14,9 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * @internal Not covered by semver; see docs/adr/0002-public-api-boundary.md.
+ */
 class DefaultSearchColumnResolver implements SearchColumnResolver
 {
     public function __construct(

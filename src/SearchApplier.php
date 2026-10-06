@@ -6,7 +6,10 @@ use AleMian95\Datatable\Contracts\QueryApplier;
 use AleMian95\Datatable\Contracts\RelationSearchResolver;
 use AleMian95\Datatable\Contracts\SearchColumnResolver;
 use AleMian95\Datatable\Search\ContainsLike;
+use AleMian95\Datatable\Search\DottedEntry;
+use AleMian95\Datatable\Search\LegacyHasDottedEntry;
 use AleMian95\Datatable\Search\RelationSearch;
+use AleMian95\Datatable\Search\SpecDottedEntry;
 use AleMian95\Datatable\Support\FromClause;
 use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
@@ -14,6 +17,9 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * @internal Not covered by semver; see docs/adr/0002-public-api-boundary.md.
+ */
 class SearchApplier implements QueryApplier
 {
     /**
@@ -179,53 +185,5 @@ class SearchApplier implements QueryApplier
         }
 
         return '';
-    }
-}
-
-/**
- * Internal contract: one resolved entry for a dot-notation search column.
- * Two implementations: SpecDottedEntry (RelationSearch-backed),
- * LegacyHasDottedEntry (multi-hop Eloquent `orWhereHas` fallback).
- */
-interface DottedEntry
-{
-    public function apply(Builder $query, string $baseTable, string $baseAlias, string $term): void;
-}
-
-final class SpecDottedEntry implements DottedEntry
-{
-    public function __construct(
-        private readonly RelationSearch $spec,
-        private readonly string $remoteColumn,
-    ) {}
-
-    public function apply(Builder $query, string $baseTable, string $baseAlias, string $term): void
-    {
-        $this->spec->apply($query, $baseTable, $this->remoteColumn, $term, $baseAlias);
-    }
-}
-
-final class LegacyHasDottedEntry implements DottedEntry
-{
-    public function __construct(
-        private readonly string $path,
-    ) {}
-
-    public function apply(Builder $query, string $baseTable, string $baseAlias, string $term): void
-    {
-        $segments = explode('.', $this->path);
-        $column = array_pop($segments);
-        $relationPath = implode('.', $segments);
-
-        // Safe by construction: this entry is only created when the builder
-        // is an EloquentBuilder, which is the only type that exposes
-        // orWhereHas. The closure parameter $query passed into apply() runs
-        // inside a where() group on the same builder, preserving the
-        // Eloquent type. A runtime instanceof narrows for static analysis.
-        if (! $query instanceof EloquentBuilder) {
-            return;
-        }
-
-        $query->orWhereHas($relationPath, fn (EloquentBuilder $q) => ContainsLike::where($q, $column, $term));
     }
 }

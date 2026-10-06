@@ -5,6 +5,9 @@ namespace AleMian95\Datatable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * @internal Not covered by semver; see docs/adr/0002-public-api-boundary.md.
+ */
 class DatatableRequest
 {
     public readonly ?string $search;

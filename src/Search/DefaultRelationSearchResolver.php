@@ -11,6 +11,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
+/**
+ * @internal Not covered by semver; see docs/adr/0002-public-api-boundary.md.
+ */
 class DefaultRelationSearchResolver implements Contract
 {
     public function resolve(Builder $builder, string $relationKey, array $apiDeclaredMap): ?RelationSearch

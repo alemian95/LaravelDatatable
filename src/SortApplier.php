@@ -10,6 +10,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * @internal Not covered by semver; see docs/adr/0002-public-api-boundary.md.
+ */
 class SortApplier implements QueryApplier
 {
     /**

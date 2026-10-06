@@ -17,34 +17,37 @@ use Illuminate\Support\Facades\Log;
 use JsonSerializable;
 use Symfony\Component\HttpFoundation\Response;
 
-class DatatableApi implements JsonSerializable, Responsable
+/**
+ * Public entry point; see docs/adr/0002-public-api-boundary.md.
+ */
+final class DatatableApi implements JsonSerializable, Responsable
 {
-    protected Builder $builder;
+    private Builder $builder;
 
-    protected DatatableRequest $request;
+    private DatatableRequest $request;
 
     /** @var array<string, \Closure> */
-    protected array $filters = [];
+    private array $filters = [];
 
     /** @var array<int, \Closure> */
-    protected array $legacyFilters = [];
+    private array $legacyFilters = [];
 
     /** @var array<string, \Closure> */
-    protected array $customSorts = [];
+    private array $customSorts = [];
 
-    protected ?\Closure $customSearch = null;
+    private ?\Closure $customSearch = null;
 
     /** @var array<int, string>|null */
-    protected ?array $apiDeclaredSearchColumns = null;
+    private ?array $apiDeclaredSearchColumns = null;
 
     /** @var array<string, RelationSearch> */
-    protected array $relationSearchMap = [];
+    private array $relationSearchMap = [];
 
     /** @var array<int, string>|null */
-    protected ?array $apiDeclaredSortColumns = null;
+    private ?array $apiDeclaredSortColumns = null;
 
     /** @var class-string<JsonResource>|null */
-    protected ?string $resourceClass = null;
+    private ?string $resourceClass = null;
 
     /**
      * @internal Use DatatableApi::for(). The argument-less form is deprecated.
