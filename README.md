@@ -1,4 +1,4 @@
-# This is my package laraveldatatable
+# Laravel Datatable
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/alemian95/laraveldatatable.svg?style=flat-square)](https://packagist.org/packages/alemian95/laraveldatatable)
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/alemian95/laraveldatatable/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/alemian95/laraveldatatable/actions?query=workflow%3Arun-tests+branch%3Amain)
@@ -6,14 +6,6 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/alemian95/laraveldatatable.svg?style=flat-square)](https://packagist.org/packages/alemian95/laraveldatatable)
 
 A lightweight, server-side datatable query layer for Laravel. Wrap any Eloquent or Query Builder instance and get standardized JSON pagination, search, sorting and filtering driven by HTTP request parameters — with hooks to override each step.
-
-## Support us
-
-[<img src="https://github-ads.s3.eu-central-1.amazonaws.com/LaravelDatatable.jpg?t=1" width="419px" />](https://spatie.be/github-ad-click/LaravelDatatable)
-
-We invest a lot of resources into creating [best in class open source packages](https://spatie.be/open-source). You can support us by [buying one of our paid products](https://spatie.be/open-source/support-us).
-
-We highly appreciate you sending us a postcard from your hometown, mentioning which of our package(s) you are using. You'll find our address on [our contact page](https://spatie.be/about-us). We publish all received postcards on [our virtual postcard wall](https://spatie.be/open-source/postcards).
 
 ## Requirements
 

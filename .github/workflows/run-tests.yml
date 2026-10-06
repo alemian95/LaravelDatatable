@@ -56,7 +56,10 @@ jobs:
           echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
 
       - name: Install dependencies
+        # composer.json pins platform.php to the 8.3 floor for local installs;
+        # each leg resolves for the PHP it actually runs.
         run: |
+          composer config platform.php ${{ matrix.php }}
           composer require "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
           composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
@@ -111,6 +114,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          composer config platform.php 8.4
           composer require "laravel/framework:13.*" "orchestra/testbench:11.*" --no-interaction --no-update
           composer update --prefer-stable --prefer-dist --no-interaction
 

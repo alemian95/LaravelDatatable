@@ -76,13 +76,9 @@ class AutoDiscoveryColumnSource
         $columns = [];
 
         foreach (Schema::getColumns($table) as $column) {
-            $name = is_array($column) ? $column['name'] ?? null : null;
-            $type = is_array($column) ? $column['type_name'] ?? null : null;
-
-            if (is_string($name) && is_string($type)
-                && in_array(strtolower($type), self::SEARCHABLE_TYPES, true)
-                && ! $this->isBlacklisted($name)) {
-                $columns[] = $name;
+            if (in_array(strtolower($column['type_name']), self::SEARCHABLE_TYPES, true)
+                && ! $this->isBlacklisted($column['name'])) {
+                $columns[] = $column['name'];
             }
         }
 

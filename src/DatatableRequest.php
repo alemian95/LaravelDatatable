@@ -18,6 +18,7 @@ class DatatableRequest
 
     public readonly ?string $sortBy;
 
+    /** @var 'asc'|'desc' */
     public readonly string $sortOrder;
 
     public readonly int $perPage;

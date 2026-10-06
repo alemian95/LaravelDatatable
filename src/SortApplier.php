@@ -59,6 +59,9 @@ class SortApplier implements QueryApplier
         $builder->orderBy($sortField, $request->sortOrder);
     }
 
+    /**
+     * @param  'asc'|'desc'  $sortDirection
+     */
     private function applyRelationSort(Builder $builder, string $sortField, string $sortDirection): void
     {
         if (! ($builder instanceof EloquentBuilder || $builder instanceof Relation)) {
