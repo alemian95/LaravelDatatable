@@ -7,6 +7,8 @@ declare module '@tanstack/react-table' {
   interface ColumnMeta<TData extends RowData, TValue> {
     searchable?: boolean
     sortKey?: string
+    /** Name shown in the column visibility menu; defaults to a string header, then the id. */
+    label?: string
   }
 }
 
@@ -22,6 +24,7 @@ export interface DatatableConfig {
 export interface ColumnMeta {
   searchable?: boolean
   sortKey?: string
+  label?: string
 }
 
 export type FilterValue = string | { from?: string; to?: string }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Table } from '@tanstack/react-table'
+import type { Column, Table } from '@tanstack/react-table'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import {
@@ -22,6 +22,11 @@ export interface ToolbarProps<T> {
   bulkActions?: BulkAction<T>[]
   selectedRows: T[]
   onActionDone: () => void
+}
+
+function columnLabel<T>(column: Column<T, unknown>): string {
+  const { header, meta } = column.columnDef
+  return meta?.label ?? (typeof header === 'string' ? header : column.id)
 }
 
 export function Toolbar<T>(props: ToolbarProps<T>) {
@@ -48,6 +53,13 @@ export function Toolbar<T>(props: ToolbarProps<T>) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-2">
+        <Input
+          placeholder={searchDisabled ? 'Show a searchable column to search' : 'Search…'}
+          value={search}
+          onChange={(e) => onSearch(e.target.value)}
+          disabled={searchDisabled}
+          className="max-w-xs"
+        />
         {selectedRows.length > 0 && bulkActions?.length ? (
           <>
             <span className="rounded-md bg-gray-100 px-3 py-1 text-sm text-gray-900 dark:bg-gray-800 dark:text-gray-50">
@@ -71,15 +83,7 @@ export function Toolbar<T>(props: ToolbarProps<T>) {
               {pending ? 'Applying…' : 'Apply'}
             </Button>
           </>
-        ) : (
-          <Input
-            placeholder={searchDisabled ? 'Show a searchable column to search' : 'Search…'}
-            value={search}
-            onChange={(e) => onSearch(e.target.value)}
-            disabled={searchDisabled}
-            className="max-w-xs"
-          />
-        )}
+        ) : null}
       </div>
 
       <div className="flex items-center gap-2">
@@ -105,7 +109,7 @@ export function Toolbar<T>(props: ToolbarProps<T>) {
                   checked={c.getIsVisible()}
                   onCheckedChange={(v) => c.toggleVisibility(!!v)}
                 >
-                  {c.id}
+                  {columnLabel(c)}
                 </DropdownMenuCheckboxItem>
               ))}
           </DropdownMenuContent>
