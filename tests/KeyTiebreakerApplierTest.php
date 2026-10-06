@@ -46,6 +46,8 @@ it('leaves raw queries, grouped queries and subquery froms alone', function ($bu
     'raw' => fn () => DB::table('test_users'),
     'grouped' => fn () => TestPost::query()->select('test_user_id')->groupBy('test_user_id'),
     'subquery from' => fn () => TestUser::query()->fromSub(DB::table('test_users'), 'sub'),
+    'distinct' => fn () => TestUser::query()->select('last_name')->distinct(),
+    'union' => fn () => TestUser::query()->union(TestUser::query()->where('id', 1)),
 ]);
 
 it('is applied by DatatableApi after the client sort', function () {

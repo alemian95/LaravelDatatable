@@ -18,7 +18,8 @@ final class KeyTiebreakerApplier implements QueryApplier
 {
     public function apply(Builder $builder, DatatableRequest $request): void
     {
-        // Raw queries have no known key; grouped queries could not select it.
+        // Raw queries have no known key. Grouped, distinct and union queries
+        // reject an ORDER BY on a column outside their select list.
         if (! ($builder instanceof EloquentBuilder || $builder instanceof Relation)) {
             return;
         }
@@ -26,7 +27,7 @@ final class KeyTiebreakerApplier implements QueryApplier
         $query = $builder instanceof Relation ? $builder->getBaseQuery() : $builder->getQuery();
         $qualifier = FromClause::qualifier($builder);
 
-        if ($qualifier === '' || ! empty($query->groups)) {
+        if ($qualifier === '' || ! empty($query->groups) || $query->distinct !== false || ! empty($query->unions)) {
             return;
         }
 
