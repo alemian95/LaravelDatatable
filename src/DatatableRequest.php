@@ -18,9 +18,6 @@ class DatatableRequest
 
     public readonly ?string $sortBy;
 
-    /** Current URL without the query string, the base of the pagination links. */
-    public readonly string $url;
-
     /** @var 'asc'|'desc' */
     public readonly string $sortOrder;
 
@@ -65,8 +62,6 @@ class DatatableRequest
         $perPage = self::integer($request, 'per_page', self::configInteger('laraveldatatable.default.per_page', 15));
         $maxPerPage = self::configInteger('laraveldatatable.default.max_per_page', 100);
         $this->perPage = max(1, min($perPage, $maxPerPage));
-
-        $this->url = $request->url();
 
         // Read here rather than by paginate() from the global request, so an
         // explicit Request passed to DatatableApi::for() drives the page too.

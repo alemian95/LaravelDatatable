@@ -6,6 +6,7 @@ use AleMian95\Datatable\Tests\Fixtures\Models\TestUser;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\DB;
 
 beforeEach(function (): void {
@@ -123,4 +124,12 @@ it('builds pagination links from the explicit request URL', function () {
 
     expect($result->path())->toBe('http://localhost/users')
         ->and($result->nextPageUrl())->toBe('http://localhost/users?page=2');
+});
+
+it('keeps a custom current path resolver when no request is passed', function () {
+    Paginator::currentPathResolver(fn () => 'https://proxy.test/users');
+
+    $result = DatatableApi::for(TestUser::query())->toPaginator();
+
+    expect($result->path())->toBe('https://proxy.test/users');
 });
