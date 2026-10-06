@@ -96,3 +96,12 @@ it('keeps the deprecated constructor + fromQuery working and flags it', function
         ->and($messages)->toHaveCount(1)
         ->and($messages[0])->toContain('DatatableApi::for(');
 });
+
+it('serializes a resource result with the same envelope as the response', function () {
+    $api = DatatableApi::for(TestUser::query(), datatableRequest([]))->returnResource(JsonResource::class);
+
+    $payload = json_decode(json_encode($api), true);
+
+    expect($payload['meta']['total'])->toBe(2)
+        ->and($payload['data'])->toHaveCount(2);
+});

@@ -57,6 +57,16 @@ Fixed constraints that were never client-controlled move onto the query: `Datata
 
 `withCustomFilters()` also changed semantics: a second call now **replaces** the first instead of adding to it. This holds for every `with*` method.
 
+### Resource responses carry pagination (breaking)
+
+With `returnResource()`, 0.1 serialized the response to a bare list of rows (`[{...}, {...}]`), without `meta`/`links`. 0.9 sends the documented envelope:
+
+```json
+{ "data": [ ... ], "links": { ... }, "meta": { "current_page": 1, "last_page": 4, "per_page": 15, "total": 60 } }
+```
+
+The React package reads it as is. Update a custom client that expected the bare list to read `data`.
+
 ### `DatatableApi` is final (breaking)
 
 If you extended it to share configuration, use a function instead:

@@ -104,3 +104,21 @@ it('stays quiet about undeclared filter keys while legacy filters are set', func
 
     Log::shouldNotHaveReceived('warning');
 });
+
+it('warns about a malformed filter value when no legacy filters are set', function () {
+    Log::spy();
+
+    filtered(['filter' => ['tags' => ['a', 'b']]])->withFilters([])->toPaginator();
+
+    Log::shouldHaveReceived('warning')->withArgs(fn (string $m) => str_contains($m, '[tags]'))->once();
+});
+
+it('stays quiet about malformed filter values while legacy filters may read them', function () {
+    Log::spy();
+
+    withoutDeprecations(fn () => filtered(['filter' => ['tags' => ['a', 'b']]])
+        ->withCustomFilters([fn ($q) => $q])
+        ->toPaginator());
+
+    Log::shouldNotHaveReceived('warning');
+});

@@ -3,7 +3,6 @@
 namespace AleMian95\Datatable;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 
 /**
  * @internal Not covered by semver; see docs/adr/0002-public-api-boundary.md.
@@ -24,6 +23,14 @@ class DatatableRequest
 
     /** @var array<string, string|array{from: ?string, to: ?string}> */
     public readonly array $filters;
+
+    /**
+     * Keys whose value had an unsupported shape; reported by FilterApplier,
+     * which knows whether legacy closures may handle them.
+     *
+     * @var array<int, string>
+     */
+    public readonly array $malformedFilters;
 
     public function __construct(Request $request)
     {
@@ -54,7 +61,7 @@ class DatatableRequest
         // explicit Request passed to DatatableApi::for() drives the page too.
         $this->page = max(1, $request->integer('page', 1));
 
-        $this->filters = self::parseFilters($request->input('filter'));
+        [$this->filters, $this->malformedFilters] = self::parseFilters($request->input('filter'));
     }
 
     public static function fromRequest(Request $request): self
@@ -63,15 +70,16 @@ class DatatableRequest
     }
 
     /**
-     * @return array<string, string|array{from: ?string, to: ?string}>
+     * @return array{0: array<string, string|array{from: ?string, to: ?string}>, 1: array<int, string>}
      */
     private static function parseFilters(mixed $raw): array
     {
         if (! is_array($raw)) {
-            return [];
+            return [[], []];
         }
 
         $filters = [];
+        $malformed = [];
 
         foreach ($raw as $key => $value) {
             // Empty values mean "no filter": the React table omits them, and
@@ -83,10 +91,7 @@ class DatatableRequest
             $parsed = self::parseFilterValue($value);
 
             if ($parsed === null) {
-                Log::warning(sprintf(
-                    'DatatableRequest dropped filter [%s]: expected a non-empty string or {from, to} with at least one bound.',
-                    $key,
-                ));
+                $malformed[] = (string) $key;
 
                 continue;
             }
@@ -94,7 +99,7 @@ class DatatableRequest
             $filters[(string) $key] = $parsed;
         }
 
-        return $filters;
+        return [$filters, $malformed];
     }
 
     /**

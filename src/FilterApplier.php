@@ -29,18 +29,22 @@ final class FilterApplier implements QueryApplier
         foreach ($request->filters as $key => $value) {
             if (isset($this->filters[$key])) {
                 ($this->filters[$key])($builder, $value);
-
-                continue;
+            } else {
+                $this->warn($key, 'not declared via DatatableApi::withFilters()');
             }
+        }
 
-            // Legacy closures read filter[...] from the request themselves, so
-            // an undeclared key is not necessarily unhandled while they exist.
-            if ($this->legacyFilters === []) {
-                Log::warning(sprintf(
-                    'FilterApplier dropped filter [%s]: not declared via DatatableApi::withFilters().',
-                    $key,
-                ));
-            }
+        foreach ($request->malformedFilters as $key) {
+            $this->warn($key, 'expected a non-empty string or {from, to} with at least one bound');
+        }
+    }
+
+    private function warn(string $key, string $reason): void
+    {
+        // Legacy closures read filter[...] from the request themselves, so a
+        // key we cannot apply is not necessarily unhandled while they exist.
+        if ($this->legacyFilters === []) {
+            Log::warning(sprintf('FilterApplier dropped filter [%s]: %s.', $key, $reason));
         }
     }
 }

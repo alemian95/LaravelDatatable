@@ -16,6 +16,7 @@ See [UPGRADE.md](UPGRADE.md) for the 0.1 → 0.9 migration.
 
 - `auto_discover_columns` now defaults to `false`. A search on a table with no declared searchable columns throws `SearchColumnsNotConfiguredException`; set the option back to `true` to restore discovery. See UPGRADE.md.
 - Without `withSortableColumns()`, `sort_by` is ignored with a log warning; only `withCustomSorts()` keys apply. See UPGRADE.md.
+- With `returnResource()`, returning the `DatatableApi` from a controller now sends the `{data, links, meta}` envelope. 0.1 serialized it to a bare list of rows, without pagination. See UPGRADE.md.
 - Requested `search_columns` outside the whitelist are now logged as a warning (they were already ignored).
 - `DatatableApi` is `final`. Share configuration through a function or factory that returns `DatatableApi::for(...)`. Classes outside the public API (appliers, resolvers, sources, `DatatableRequest`) are marked `@internal`; see `docs/adr/0002-public-api-boundary.md`.
 

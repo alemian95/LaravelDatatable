@@ -73,11 +73,14 @@ it('skips empty filter values silently', function () {
     Log::shouldNotHaveReceived('warning');
 });
 
-it('drops malformed filter values with a warning', function (array $filter, string $key) {
+it('drops malformed filter values and records their keys without logging', function (array $filter, string $key) {
     Log::spy();
 
-    expect(makePerPageRequest(['filter' => $filter])->filters)->toBe([]);
-    Log::shouldHaveReceived('warning')->withArgs(fn (string $message) => str_contains($message, "[{$key}]"))->once();
+    $request = makePerPageRequest(['filter' => $filter]);
+
+    expect($request->filters)->toBe([])
+        ->and($request->malformedFilters)->toBe([$key]);
+    Log::shouldNotHaveReceived('warning');
 })->with([
     'list' => [['s' => ['a', 'b']], 's'],
     'nested bound' => [['r' => ['from' => ['x' => '1']]], 'r'],

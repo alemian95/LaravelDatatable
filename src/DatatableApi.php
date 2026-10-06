@@ -233,7 +233,13 @@ final class DatatableApi implements JsonSerializable, Responsable
 
     public function jsonSerialize(): mixed
     {
-        return $this->toPaginator();
+        $result = $this->toPaginator();
+
+        // A ResourceCollection serializes to its bare data list; use the same
+        // {data, links, meta} envelope that toResponse() sends.
+        return $result instanceof ResourceCollection
+            ? $result->response()->getData(true)
+            : $result;
     }
 
     /**
