@@ -11,6 +11,7 @@ The React table sends `filter[<key>]=value` (and `filter[<key>][from|to]` for ra
 
 - New `withFilters(array<string, Closure(Builder, mixed): void>)`.
 - A closure runs only when `filter[<key>]` is present and non-empty. It receives the value already parsed from the request: a string, or `['from' => ?string, 'to' => ?string]`.
+- `DatatableRequest` parses `filter[...]`. A closure only ever receives a non-empty string, or `['from' => ?string, 'to' => ?string]` with at least one bound set. Any other shape (nested arrays, an empty range) is dropped with a log warning, and the closure is not called.
 - Undeclared keys follow ADR 5.
 - `withCustomFilters` is deprecated in 0.9 and removed in 1.0. Fixed server-side constraints (tenant, active scope) belong on the query passed to `for()`.
 
