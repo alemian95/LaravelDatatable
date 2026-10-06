@@ -39,7 +39,8 @@ class DatatableRequest
         $search = $request->input('search');
         $this->search = is_string($search) ? $search : null;
 
-        $this->searchColumns = array_filter(explode(',', $request->string('search_columns', '')->toString()));
+        $searchColumns = $request->input('search_columns');
+        $this->searchColumns = is_string($searchColumns) ? array_filter(explode(',', $searchColumns)) : [];
 
         $sortBy = $request->input('sort_by');
         $this->sortBy = is_string($sortBy) ? $sortBy : null;
@@ -53,13 +54,13 @@ class DatatableRequest
 
         // ponytail: clamp to [1, max] so a client cannot request an unbounded
         // page size (DoS). Raise max_per_page in config if a legit caller needs more.
-        $perPage = $request->integer('per_page', (int) config('laraveldatatable.default.per_page', 15));
+        $perPage = self::integer($request, 'per_page', (int) config('laraveldatatable.default.per_page', 15));
         $maxPerPage = (int) config('laraveldatatable.default.max_per_page', 100);
         $this->perPage = max(1, min($perPage, $maxPerPage));
 
         // Read here rather than by paginate() from the global request, so an
         // explicit Request passed to DatatableApi::for() drives the page too.
-        $this->page = max(1, $request->integer('page', 1));
+        $this->page = max(1, self::integer($request, 'page', 1));
 
         [$this->filters, $this->malformedFilters] = self::parseFilters($request->input('filter'));
     }
@@ -67,6 +68,15 @@ class DatatableRequest
     public static function fromRequest(Request $request): self
     {
         return new self($request);
+    }
+
+    // Request::integer() casts an array to 1; anything non-numeric falls back
+    // to the default instead.
+    private static function integer(Request $request, string $key, int $default): int
+    {
+        $value = $request->input($key);
+
+        return is_numeric($value) ? (int) $value : $default;
     }
 
     /**

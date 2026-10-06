@@ -91,3 +91,21 @@ it('drops malformed filter values and records their keys without logging', funct
 it('ignores a filter parameter that is not an array', function () {
     expect(makePerPageRequest(['filter' => 'status'])->filters)->toBe([]);
 });
+
+it('ignores array values for every scalar parameter', function () {
+    $request = makePerPageRequest([
+        'search' => ['a'],
+        'search_columns' => ['first_name'],
+        'sort_by' => ['email'],
+        'sort_order' => ['desc'],
+        'per_page' => ['50'],
+        'page' => ['2'],
+    ]);
+
+    expect($request->search)->toBeNull()
+        ->and($request->searchColumns)->toBe([])
+        ->and($request->sortBy)->toBeNull()
+        ->and($request->sortOrder)->toBe('asc')
+        ->and($request->perPage)->toBe(15)
+        ->and($request->page)->toBe(1);
+});
