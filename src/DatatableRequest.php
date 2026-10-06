@@ -62,8 +62,8 @@ class DatatableRequest
 
         // ponytail: clamp to [1, max] so a client cannot request an unbounded
         // page size (DoS). Raise max_per_page in config if a legit caller needs more.
-        $perPage = self::integer($request, 'per_page', config()->integer('laraveldatatable.default.per_page', 15));
-        $maxPerPage = config()->integer('laraveldatatable.default.max_per_page', 100);
+        $perPage = self::integer($request, 'per_page', self::configInteger('laraveldatatable.default.per_page', 15));
+        $maxPerPage = self::configInteger('laraveldatatable.default.max_per_page', 100);
         $this->perPage = max(1, min($perPage, $maxPerPage));
 
         $this->url = $request->url();
@@ -78,6 +78,15 @@ class DatatableRequest
     public static function fromRequest(Request $request): self
     {
         return new self($request);
+    }
+
+    // Config often comes from env(), i.e. strings: accept any numeric value
+    // rather than config()->integer(), which throws on "25".
+    private static function configInteger(string $key, int $default): int
+    {
+        $value = config($key);
+
+        return is_numeric($value) ? (int) $value : $default;
     }
 
     // Request::integer() casts an array to 1; anything non-numeric falls back

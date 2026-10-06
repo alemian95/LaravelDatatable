@@ -109,3 +109,11 @@ it('ignores array values for every scalar parameter', function () {
         ->and($request->perPage)->toBe(15)
         ->and($request->page)->toBe(1);
 });
+
+it('tolerates env-driven string values in the per_page config', function () {
+    config()->set('laraveldatatable.default.per_page', '25');
+    config()->set('laraveldatatable.default.max_per_page', '50');
+
+    expect(makePerPageRequest()->perPage)->toBe(25)
+        ->and(makePerPageRequest(['per_page' => 80])->perPage)->toBe(50);
+});

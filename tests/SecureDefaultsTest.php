@@ -1,5 +1,6 @@
 <?php
 
+use AleMian95\Datatable\Contracts\SearchColumnResolver;
 use AleMian95\Datatable\DatatableApi;
 use AleMian95\Datatable\DatatableRequest;
 use AleMian95\Datatable\Exceptions\SearchColumnsNotConfiguredException;
@@ -48,4 +49,14 @@ it('warns about requested search columns outside the whitelist', function () {
         ->toPaginator();
 
     Log::shouldHaveReceived('warning')->withArgs(fn (string $m) => str_contains($m, '[password]'))->once();
+});
+
+it('tolerates loosely typed search config', function () {
+    config()->set('laraveldatatable.search.auto_discover_columns', '1');
+    config()->set('laraveldatatable.search.auto_discovery_blacklist', null);
+    app()->forgetInstance(SearchColumnResolver::class);
+
+    $result = DatatableApi::for(TestUser::query(), defaultsRequest(['search' => 'nobody']))->toPaginator();
+
+    expect($result->total())->toBe(0);
 });

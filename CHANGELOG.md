@@ -10,7 +10,7 @@ See [UPGRADE.md](UPGRADE.md) for the 0.1 → 0.9 migration.
 
 - `DatatableApi::for($query, ?Request $request = null)` as the entry point; an explicit request also drives the page number.
 - `DatatableApi` is `Responsable` and has a public `toPaginator()`; each execution runs on a clone of the builder, so it can run more than once.
-- `withFilters(['key' => fn ($query, $value) => ...])`: keyed client filters. The closure runs only when `filter[key]` is present and receives a string or `['from' => ?string, 'to' => ?string]`; malformed values and undeclared keys are ignored with a log warning.
+- `withFilters(['key' => fn ($query, $value) => ...])`: keyed client filters. The closure runs only when `filter[key]` is present and receives a string or `['from' => ?string, 'to' => ?string]`; malformed values and undeclared keys are ignored with a single log warning per request. Values always arrive as strings, so type the closure parameter `string` (or `array` for ranges), not `int`: the package declares strict types.
 
 ### Changed (breaking)
 

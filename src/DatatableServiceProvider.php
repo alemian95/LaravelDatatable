@@ -33,14 +33,16 @@ class DatatableServiceProvider extends PackageServiceProvider
         // resolver itself is stateless, so the per-request construction cost
         // is negligible.
         $this->app->scoped(SearchColumnResolver::class, function (): DefaultSearchColumnResolver {
-            $config = config();
-            $blacklist = $config->array('laraveldatatable.search.auto_discovery_blacklist', []);
+            // Read loosely: published config often holds env() strings or nulls,
+            // which the typed config()->array()/boolean() getters reject.
+            $blacklist = config('laraveldatatable.search.auto_discovery_blacklist');
+            $discover = config('laraveldatatable.search.auto_discover_columns');
 
             return new DefaultSearchColumnResolver(
                 new ApiDeclaredColumnSource,
                 new ModelDeclaredColumnSource,
-                new AutoDiscoveryColumnSource(array_values(array_filter($blacklist, 'is_string'))),
-                $config->boolean('laraveldatatable.search.auto_discover_columns', false),
+                new AutoDiscoveryColumnSource(is_array($blacklist) ? array_values(array_filter($blacklist, 'is_string')) : []),
+                filter_var($discover, FILTER_VALIDATE_BOOL),
             );
         });
 
