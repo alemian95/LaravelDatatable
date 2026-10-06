@@ -454,7 +454,7 @@ function searchUsersWithWildcards(string $term, array $columns = ['first_name'])
     $builder = TestUser::query();
     (new SearchApplier($resolver))->apply($builder, makeApplierRequest(['search' => $term]));
 
-    return $builder->pluck('first_name')->all();
+    return $builder->orderBy('id')->pluck('first_name')->all();
 }
 
 it('treats % in the search term as a literal character', function () {
