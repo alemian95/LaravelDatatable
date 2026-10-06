@@ -30,6 +30,7 @@ phpstan.neon
 testbench.yaml
 /docs/*
 !/docs/superpowers/
+!/docs/adr/
 /coverage
 
 # Claude Code local state
