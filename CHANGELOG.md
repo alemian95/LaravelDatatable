@@ -12,6 +12,7 @@ All notable changes to `LaravelDatatable` will be documented in this file.
 - React: the search box stays visible next to the bulk actions while rows are selected.
 - React: the column visibility menu shows `meta.label`, then a string `header`, instead of the column id. `meta.label` is new.
 - React: `defaultPerPage` is always among the rows-per-page options (with `10` the select used to be empty). New `perPageOptions` prop.
+- React: requests send `Accept: application/json` and `X-Requested-With: XMLHttpRequest` (your `headers` override them), so an expired session yields a 401 error instead of a login redirect. Superseded requests are aborted. A response that is not a paginator is reported as an error instead of crashing.
 
 ## v0.1.1 - 2026-10-04
 

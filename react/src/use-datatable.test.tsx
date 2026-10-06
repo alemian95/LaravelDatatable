@@ -46,8 +46,38 @@ describe('useDatatable', () => {
       { wrapper: wrapper(async () => ({ Authorization: 'Bearer tok' })) },
     )
     await waitFor(() => expect(result.current.isLoading).toBe(false))
-    const init = (fetch as any).mock.calls[0][1]
-    expect(init.headers).toEqual({ Authorization: 'Bearer tok' })
+    const headers = new Headers((fetch as any).mock.calls[0][1].headers)
+    expect(headers.get('authorization')).toBe('Bearer tok')
+  })
+
+  it('asks for JSON by default so an expired session is not a login redirect', async () => {
+    const { result } = renderHook(
+      () => useDatatable('/users', { page: 1, perPage: 15 }),
+      { wrapper: wrapper({ Accept: 'application/vnd.api+json' }) },
+    )
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+    const headers = new Headers((fetch as any).mock.calls[0][1].headers)
+    expect(headers.get('accept')).toBe('application/vnd.api+json')
+    expect(headers.get('x-requested-with')).toBe('XMLHttpRequest')
+  })
+
+  it('passes an abort signal so superseded requests can be cancelled', async () => {
+    const { result } = renderHook(
+      () => useDatatable('/users', { page: 1, perPage: 15 }),
+      { wrapper: wrapper() },
+    )
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+    expect((fetch as any).mock.calls[0][1].signal).toBeInstanceOf(AbortSignal)
+  })
+
+  it('reports a non-object response body as an error', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => null })))
+    const { result } = renderHook(
+      () => useDatatable('/users', { page: 1, perPage: 15 }),
+      { wrapper: wrapper() },
+    )
+    await waitFor(() => expect(result.current.error).toBeInstanceOf(Error))
+    expect(result.current.error?.message).toMatch(/unexpected response/i)
   })
 
   it('reads pagination from the meta envelope of an API Resource collection', async () => {
