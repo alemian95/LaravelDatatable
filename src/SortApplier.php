@@ -28,10 +28,6 @@ class SortApplier implements QueryApplier
 
     public function apply(Builder $builder, DatatableRequest $request): void
     {
-        if (! $request->hasSorting()) {
-            return;
-        }
-
         $sortField = $request->sortBy;
         if ($sortField === null) {
             return;
@@ -121,6 +117,8 @@ class SortApplier implements QueryApplier
      * Resolve a segment to a BelongsTo relation, or null. Safe by construction:
      * only reached for whitelisted, dev-declared paths, and mirrors the search
      * side (try/catch + instanceof) instead of trusting method_exists alone.
+     *
+     * @return BelongsTo<Model, Model>|null
      */
     private function resolveBelongsTo(Model $model, string $name): ?BelongsTo
     {

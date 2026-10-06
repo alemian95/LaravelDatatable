@@ -206,6 +206,8 @@ final class DatatableApi implements JsonSerializable, Responsable
     /**
      * Runs the query on a clone of the builder, so calling it again (or
      * serializing twice) never applies search and sort twice.
+     *
+     * @return LengthAwarePaginator<int, mixed>|ResourceCollection
      */
     public function toPaginator(): LengthAwarePaginator|ResourceCollection
     {

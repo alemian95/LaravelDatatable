@@ -38,12 +38,14 @@ class SearchApplier implements QueryApplier
 
     public function apply(Builder $builder, DatatableRequest $request): void
     {
-        if (! $request->hasSearch()) {
+        $term = $request->search;
+
+        if ($term === null) {
             return;
         }
 
         if ($this->customSearch) {
-            ($this->customSearch)($builder, $request->search);
+            ($this->customSearch)($builder, $term);
 
             return;
         }
@@ -63,7 +65,6 @@ class SearchApplier implements QueryApplier
             return;
         }
 
-        $term = $request->search;
         $qualifier = FromClause::qualifier($builder);
 
         $baseAlias = $qualifier === '' ? $baseTable : $qualifier;
@@ -183,7 +184,7 @@ class SearchApplier implements QueryApplier
 
         if ($builder instanceof QueryBuilder && is_string($builder->from)) {
             // Strip ' as alias' suffix — case-insensitive on the AS keyword.
-            return preg_split('/\s+as\s+/i', $builder->from, 2)[0];
+            return (preg_split('/\s+as\s+/i', $builder->from, 2) ?: [$builder->from])[0];
         }
 
         return '';

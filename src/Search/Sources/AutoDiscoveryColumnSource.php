@@ -67,16 +67,26 @@ class AutoDiscoveryColumnSource
      */
     private function searchableColumns(string $table): array
     {
+        if (isset($this->searchableColumnsByTable[$table])) {
+            return $this->searchableColumnsByTable[$table];
+        }
+
         // One Schema::getColumns() call returns names and types together,
         // instead of a type lookup per column.
-        return $this->searchableColumnsByTable[$table] ??= array_values(array_map(
-            fn (array $column): string => $column['name'],
-            array_filter(
-                Schema::getColumns($table),
-                fn (array $column): bool => in_array(strtolower($column['type_name']), self::SEARCHABLE_TYPES, true)
-                    && ! $this->isBlacklisted($column['name']),
-            ),
-        ));
+        $columns = [];
+
+        foreach (Schema::getColumns($table) as $column) {
+            $name = is_array($column) ? $column['name'] ?? null : null;
+            $type = is_array($column) ? $column['type_name'] ?? null : null;
+
+            if (is_string($name) && is_string($type)
+                && in_array(strtolower($type), self::SEARCHABLE_TYPES, true)
+                && ! $this->isBlacklisted($name)) {
+                $columns[] = $name;
+            }
+        }
+
+        return $this->searchableColumnsByTable[$table] = $columns;
     }
 
     private function isBlacklisted(string $column): bool

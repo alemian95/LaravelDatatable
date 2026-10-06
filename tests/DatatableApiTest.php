@@ -105,3 +105,13 @@ it('serializes a resource result with the same envelope as the response', functi
     expect($payload['meta']['total'])->toBe(2)
         ->and($payload['data'])->toHaveCount(2);
 });
+
+it('searches for the term "0"', function () {
+    TestUser::create(['first_name' => 'Zero', 'last_name' => 'X', 'email' => 'a0@test']);
+
+    $result = DatatableApi::for(TestUser::query(), datatableRequest(['search' => '0']))
+        ->withSearchableColumns(['email'])
+        ->toPaginator();
+
+    expect($result->total())->toBe(1);
+});

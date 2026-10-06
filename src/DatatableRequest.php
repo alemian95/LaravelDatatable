@@ -13,6 +13,7 @@ class DatatableRequest
 {
     public readonly ?string $search;
 
+    /** @var array<int, string> */
     public readonly array $searchColumns;
 
     public readonly ?string $sortBy;
@@ -36,16 +37,17 @@ class DatatableRequest
 
     public function __construct(Request $request)
     {
-        // Force to string|null: array inputs (?search[]=a) would otherwise trip
-        // the typed properties with a TypeError before any query runs.
+        // Force to non-empty string|null: array inputs (?search[]=a) would
+        // otherwise trip the typed properties with a TypeError before any query
+        // runs. Compared with '' rather than empty(), so "0" is a real term.
         $search = $request->input('search');
-        $this->search = is_string($search) ? $search : null;
+        $this->search = is_string($search) && $search !== '' ? $search : null;
 
         $searchColumns = $request->input('search_columns');
         $this->searchColumns = is_string($searchColumns) ? array_filter(explode(',', $searchColumns)) : [];
 
         $sortBy = $request->input('sort_by');
-        $this->sortBy = is_string($sortBy) ? $sortBy : null;
+        $this->sortBy = is_string($sortBy) && $sortBy !== '' ? $sortBy : null;
 
         // Whitelist the direction: an unvalidated value reaches orderBy() (throws
         // on anything but asc/desc) and is handed to custom-sort closures that
@@ -56,8 +58,8 @@ class DatatableRequest
 
         // ponytail: clamp to [1, max] so a client cannot request an unbounded
         // page size (DoS). Raise max_per_page in config if a legit caller needs more.
-        $perPage = self::integer($request, 'per_page', (int) config('laraveldatatable.default.per_page', 15));
-        $maxPerPage = (int) config('laraveldatatable.default.max_per_page', 100);
+        $perPage = self::integer($request, 'per_page', config()->integer('laraveldatatable.default.per_page', 15));
+        $maxPerPage = config()->integer('laraveldatatable.default.max_per_page', 100);
         $this->perPage = max(1, min($perPage, $maxPerPage));
 
         // Read here rather than by paginate() from the global request, so an
@@ -140,15 +142,5 @@ class DatatableRequest
         }
 
         return $range['from'] === null && $range['to'] === null ? null : $range;
-    }
-
-    public function hasSearch(): bool
-    {
-        return ! empty($this->search);
-    }
-
-    public function hasSorting(): bool
-    {
-        return ! empty($this->sortBy);
     }
 }

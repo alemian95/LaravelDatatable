@@ -33,7 +33,7 @@ final class FromClause
             return '';
         }
 
-        $parts = preg_split('/\s+as\s+/i', $from, 2);
+        $parts = preg_split('/\s+as\s+/i', $from, 2) ?: [$from];
 
         return $parts[1] ?? $parts[0];
     }
