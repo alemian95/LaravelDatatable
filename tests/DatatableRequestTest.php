@@ -2,6 +2,7 @@
 
 use AleMian95\Datatable\DatatableRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 function makePerPageRequest(array $params = []): DatatableRequest
 {
@@ -40,4 +41,50 @@ it('coerces array search and sort_by to null instead of raising a TypeError', fu
 
     expect($request->search)->toBeNull()
         ->and($request->sortBy)->toBeNull();
+});
+
+it('reads page, defaulting and flooring to 1', function () {
+    expect(makePerPageRequest()->page)->toBe(1)
+        ->and(makePerPageRequest(['page' => 3])->page)->toBe(3)
+        ->and(makePerPageRequest(['page' => 0])->page)->toBe(1)
+        ->and(makePerPageRequest(['page' => 'abc'])->page)->toBe(1);
+});
+
+it('parses scalar and range filters', function () {
+    $request = makePerPageRequest(['filter' => [
+        'status' => 'active',
+        'created_at' => ['from' => '2026-01-01'],
+        'price' => ['from' => '10', 'to' => '20'],
+    ]]);
+
+    expect($request->filters)->toBe([
+        'status' => 'active',
+        'created_at' => ['from' => '2026-01-01', 'to' => null],
+        'price' => ['from' => '10', 'to' => '20'],
+    ]);
+});
+
+it('skips empty filter values silently', function () {
+    Log::spy();
+
+    $request = makePerPageRequest(['filter' => ['status' => '', 'role' => null]]);
+
+    expect($request->filters)->toBe([]);
+    Log::shouldNotHaveReceived('warning');
+});
+
+it('drops malformed filter values with a warning', function (array $filter, string $key) {
+    Log::spy();
+
+    expect(makePerPageRequest(['filter' => $filter])->filters)->toBe([]);
+    Log::shouldHaveReceived('warning')->withArgs(fn (string $message) => str_contains($message, "[{$key}]"))->once();
+})->with([
+    'list' => [['s' => ['a', 'b']], 's'],
+    'nested bound' => [['r' => ['from' => ['x' => '1']]], 'r'],
+    'unknown range key' => [['r' => ['other' => '1']], 'r'],
+    'empty range' => [['r' => ['from' => '', 'to' => '']], 'r'],
+]);
+
+it('ignores a filter parameter that is not an array', function () {
+    expect(makePerPageRequest(['filter' => 'status'])->filters)->toBe([]);
 });
