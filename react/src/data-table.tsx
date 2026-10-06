@@ -21,6 +21,8 @@ export interface DataTableProps<T> {
   endpoint: string
   columns: ColumnDef<T, unknown>[]
   defaultPerPage?: number
+  /** Page sizes offered to the user; `defaultPerPage` is always added. Defaults to 15, 25, 50. */
+  perPageOptions?: number[]
   filters?: FilterDef[]
   bulkActions?: BulkAction<T>[]
   /**
@@ -38,10 +40,15 @@ function defaultRowId<T>(row: T, index: number): string {
   return id != null ? String(id) : String(index)
 }
 
+export function perPageChoices(defaultPerPage: number, options: number[] = [15, 25, 50]): number[] {
+  return [...new Set([...options, defaultPerPage])].sort((a, b) => a - b)
+}
+
 export function DataTable<T>({
   endpoint,
   columns,
   defaultPerPage = 15,
+  perPageOptions,
   filters,
   bulkActions,
   getRowId,
@@ -252,7 +259,7 @@ export function DataTable<T>({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {[15, 25, 50].map((n) => (
+              {perPageChoices(defaultPerPage, perPageOptions).map((n) => (
                 <SelectItem key={n} value={String(n)}>
                   {n}
                 </SelectItem>

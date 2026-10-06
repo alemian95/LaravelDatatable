@@ -343,8 +343,24 @@ it('strips a table alias from baseTable so default-key derivation works on alias
     $sql = strtolower($builder->toRawSql());
 
     expect($sql)
-        ->toContain('"test_posts"."test_user_id" = "test_users"."id"')
+        ->toContain('"test_posts"."test_user_id" = "u"."id"')
         ->toContain('"test_posts"."title"');
+});
+
+it('runs a declared relation search on an aliased raw query', function () {
+    $ann = TestUser::create(['first_name' => 'Ann', 'last_name' => 'B', 'email' => 'ann@test']);
+    TestUser::create(['first_name' => 'Bob', 'last_name' => 'C', 'email' => 'bob@test']);
+    TestPost::create(['test_user_id' => $ann->id, 'title' => 'hello', 'body' => 'y']);
+
+    $resolver = Mockery::mock(SearchColumnResolver::class);
+    $resolver->shouldReceive('resolve')->once()->andReturn(['posts.title']);
+
+    $builder = DB::table('test_users as u');
+    (new SearchApplier($resolver, null, null, new DefaultRelationSearchResolver, [
+        'posts' => RelationSearch::hasMany('test_posts', 'test_user_id'),
+    ]))->apply($builder, makeApplierRequest(['search' => 'hell']));
+
+    expect($builder->pluck('first_name')->all())->toBe(['Ann']);
 });
 
 it('drops a multi-hop dotted column on raw even when a single-segment spec is declared', function () {
@@ -425,4 +441,66 @@ it('leaves flat search columns unqualified on an Eloquent builder whose from is 
     (new SearchApplier($resolver))->apply($builder, makeApplierRequest(['search' => 'jane']));
 
     expect($builder->count())->toBe(1);
+});
+
+function searchUsersWithWildcards(string $term, array $columns = ['first_name']): array
+{
+    TestUser::create(['first_name' => '50%_off', 'last_name' => 'A', 'email' => 'a@test']);
+    TestUser::create(['first_name' => '50xxoff', 'last_name' => 'B', 'email' => 'b@test']);
+    TestUser::create(['first_name' => 'back\\slash', 'last_name' => 'C', 'email' => 'c@test']);
+
+    $resolver = Mockery::mock(SearchColumnResolver::class);
+    $resolver->shouldReceive('resolve')->once()->andReturn($columns);
+
+    $builder = TestUser::query();
+    (new SearchApplier($resolver))->apply($builder, makeApplierRequest(['search' => $term]));
+
+    return $builder->pluck('first_name')->all();
+}
+
+it('treats % in the search term as a literal character', function () {
+    expect(searchUsersWithWildcards('%'))->toBe(['50%_off']);
+});
+
+it('treats _ in the search term as a literal character', function () {
+    expect(searchUsersWithWildcards('50%_'))->toBe(['50%_off']);
+});
+
+it('treats a backslash in the search term as a literal character', function () {
+    expect(searchUsersWithWildcards('k\\s'))->toBe(['back\\slash']);
+});
+
+it('keeps the search case-insensitive after escaping', function () {
+    expect(searchUsersWithWildcards('OFF'))->toBe(['50%_off', '50xxoff']);
+});
+
+it('escapes wildcards in declared relation searches', function () {
+    $ann = TestUser::create(['first_name' => 'Ann', 'last_name' => 'B', 'email' => 'ann@test']);
+    $bob = TestUser::create(['first_name' => 'Bob', 'last_name' => 'C', 'email' => 'bob@test']);
+    TestPost::create(['test_user_id' => $ann->id, 'title' => '100% real', 'body' => 'y']);
+    TestPost::create(['test_user_id' => $bob->id, 'title' => 'plain', 'body' => 'y']);
+
+    $resolver = Mockery::mock(SearchColumnResolver::class);
+    $resolver->shouldReceive('resolve')->once()->andReturn(['posts.title']);
+
+    $builder = DB::table('test_users');
+    (new SearchApplier($resolver, null, null, new DefaultRelationSearchResolver, [
+        'posts' => RelationSearch::hasMany('test_posts', 'test_user_id'),
+    ]))->apply($builder, makeApplierRequest(['search' => '%']));
+
+    expect($builder->pluck('first_name')->all())->toBe(['Ann']);
+});
+
+it('escapes wildcards on the legacy multi-hop path', function () {
+    $user = TestUser::create(['first_name' => 'Ann', 'last_name' => 'B', 'email' => 'ann@test']);
+    TestPost::create(['test_user_id' => $user->id, 'title' => 'plain', 'body' => 'y']);
+
+    $resolver = Mockery::mock(SearchColumnResolver::class);
+    $resolver->shouldReceive('resolve')->once()->andReturn(['author.posts.title']);
+
+    $builder = TestPost::query();
+    (new SearchApplier($resolver, null, null, new DefaultRelationSearchResolver, []))
+        ->apply($builder, makeApplierRequest(['search' => '%']));
+
+    expect($builder->count())->toBe(0);
 });

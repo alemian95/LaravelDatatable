@@ -5,8 +5,20 @@ import { buildParams } from './build-params'
 import type { DatatableQuery, PaginatorResponse, ResourceCollectionResponse } from './types'
 
 // Both envelopes the backend can emit: raw paginator, or returnResource().
-function toPaginator<T>(body: PaginatorResponse<T> | ResourceCollectionResponse<T>): PaginatorResponse<T> {
-  return 'meta' in body ? { data: body.data, ...body.meta } : body
+function toPaginator<T>(body: unknown): PaginatorResponse<T> {
+  if (typeof body !== 'object' || body === null || !('data' in body)) {
+    throw new Error('Unexpected response: expected a paginator or an API Resource collection')
+  }
+  const paginated = body as PaginatorResponse<T> | ResourceCollectionResponse<T>
+  return 'meta' in paginated ? { data: paginated.data, ...paginated.meta } : paginated
+}
+
+// Without these Laravel answers an expired session with a 302 to the login
+// page instead of a 401. The consumer's headers win.
+async function requestHeaders(resolver: Parameters<typeof resolveHeaders>[0]): Promise<Headers> {
+  const headers = new Headers({ Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' })
+  new Headers(await resolveHeaders(resolver)).forEach((value, key) => headers.set(key, value))
+  return headers
 }
 
 export function useDatatable<T>(endpoint: string, query: DatatableQuery) {
@@ -15,10 +27,10 @@ export function useDatatable<T>(endpoint: string, query: DatatableQuery) {
   const q = useQuery({
     queryKey: [config.baseUrl, endpoint, query],
     placeholderData: keepPreviousData,
-    queryFn: async (): Promise<PaginatorResponse<T>> => {
-      const headers = await resolveHeaders(config.headers)
+    queryFn: async ({ signal }): Promise<PaginatorResponse<T>> => {
+      const headers = await requestHeaders(config.headers)
       const url = `${config.baseUrl}${endpoint}?${buildParams(query).toString()}`
-      const res = await fetch(url, { headers })
+      const res = await fetch(url, { headers, signal })
       if (!res.ok) throw new Error(`Request failed with status ${res.status}`)
       return toPaginator<T>(await res.json())
     },

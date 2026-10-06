@@ -5,7 +5,9 @@ namespace AleMian95\Datatable;
 use AleMian95\Datatable\Contracts\QueryApplier;
 use AleMian95\Datatable\Contracts\RelationSearchResolver;
 use AleMian95\Datatable\Contracts\SearchColumnResolver;
+use AleMian95\Datatable\Search\ContainsLike;
 use AleMian95\Datatable\Search\RelationSearch;
+use AleMian95\Datatable\Support\FromClause;
 use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -54,17 +56,19 @@ class SearchApplier implements QueryApplier
         }
 
         $term = $request->search;
-        $qualifier = $this->qualifierFor($builder);
+        $qualifier = FromClause::qualifier($builder);
 
-        $builder->where(function (Builder $query) use ($resolved, $term, $baseTable, $qualifier): void {
+        $baseAlias = $qualifier === '' ? $baseTable : $qualifier;
+
+        $builder->where(function (Builder $query) use ($resolved, $term, $baseTable, $qualifier, $baseAlias): void {
             foreach ($resolved['flat'] as $field) {
                 // Qualified so a join added later (relation sort, user joins) cannot
                 // make the column ambiguous.
-                $query->orWhereLike($qualifier === '' ? $field : "{$qualifier}.{$field}", "%{$term}%");
+                ContainsLike::orWhere($query, $qualifier === '' ? $field : "{$qualifier}.{$field}", $term);
             }
 
             foreach ($resolved['dotted'] as $entry) {
-                $entry->apply($query, $baseTable, $term);
+                $entry->apply($query, $baseTable, $baseAlias, $term);
             }
         });
     }
@@ -176,31 +180,6 @@ class SearchApplier implements QueryApplier
 
         return '';
     }
-
-    /**
-     * Name to qualify base-table columns with, read from the from clause the
-     * query actually runs (Eloquent and relations included): the alias for
-     * "table as alias", the table otherwise, '' when the from clause is not a
-     * plain identifier (subquery). Unlike baseTableFor(), which needs the real
-     * table name to derive keys.
-     */
-    private function qualifierFor(Builder $builder): string
-    {
-        $from = match (true) {
-            $builder instanceof QueryBuilder => $builder->from,
-            $builder instanceof EloquentBuilder => $builder->getQuery()->from,
-            $builder instanceof Relation => $builder->getBaseQuery()->from,
-            default => null,
-        };
-
-        if (! is_string($from)) {
-            return '';
-        }
-
-        $parts = preg_split('/\s+as\s+/i', $from, 2);
-
-        return $parts[1] ?? $parts[0];
-    }
 }
 
 /**
@@ -210,7 +189,7 @@ class SearchApplier implements QueryApplier
  */
 interface DottedEntry
 {
-    public function apply(Builder $query, string $baseTable, string $term): void;
+    public function apply(Builder $query, string $baseTable, string $baseAlias, string $term): void;
 }
 
 final class SpecDottedEntry implements DottedEntry
@@ -220,9 +199,9 @@ final class SpecDottedEntry implements DottedEntry
         private readonly string $remoteColumn,
     ) {}
 
-    public function apply(Builder $query, string $baseTable, string $term): void
+    public function apply(Builder $query, string $baseTable, string $baseAlias, string $term): void
     {
-        $this->spec->apply($query, $baseTable, $this->remoteColumn, $term);
+        $this->spec->apply($query, $baseTable, $this->remoteColumn, $term, $baseAlias);
     }
 }
 
@@ -232,7 +211,7 @@ final class LegacyHasDottedEntry implements DottedEntry
         private readonly string $path,
     ) {}
 
-    public function apply(Builder $query, string $baseTable, string $term): void
+    public function apply(Builder $query, string $baseTable, string $baseAlias, string $term): void
     {
         $segments = explode('.', $this->path);
         $column = array_pop($segments);
@@ -247,6 +226,6 @@ final class LegacyHasDottedEntry implements DottedEntry
             return;
         }
 
-        $query->orWhereHas($relationPath, fn (EloquentBuilder $q) => $q->whereLike($column, "%{$term}%"));
+        $query->orWhereHas($relationPath, fn (EloquentBuilder $q) => ContainsLike::where($q, $column, $term));
     }
 }

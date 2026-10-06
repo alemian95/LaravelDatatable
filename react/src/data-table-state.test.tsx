@@ -26,9 +26,9 @@ function lastUrl(): string {
   return calls[calls.length - 1]![0] as string
 }
 
-async function toggleColumn(id: string) {
+async function toggleColumn(label: string) {
   await userEvent.click(screen.getByRole('button', { name: 'Columns' }))
-  await userEvent.click(await screen.findByRole('menuitemcheckbox', { name: id }))
+  await userEvent.click(await screen.findByRole('menuitemcheckbox', { name: label }))
 }
 
 beforeEach(() => {
@@ -59,7 +59,7 @@ describe('DataTable state', () => {
     await waitFor(() => {
       const url = lastUrl()
       expect(url).toContain('search=ann')
-      expect(url).toContain('page=1')
+      expect(url).toMatch(/[?&]page=1(&|$)/)
     })
   })
 
@@ -90,13 +90,13 @@ describe('DataTable state', () => {
     await userEvent.type(screen.getByPlaceholderText('Search…'), 'ann')
     await waitFor(() => expect(lastUrl()).toContain('search=ann&search_columns=name'))
 
-    await toggleColumn('name')
+    await toggleColumn('Name')
     await waitFor(() => {
       expect(lastUrl()).not.toContain('search=')
       expect(lastUrl()).not.toContain('search_columns=')
     })
 
-    await toggleColumn('name')
+    await toggleColumn('Name')
     await waitFor(() => expect(lastUrl()).toContain('search=ann&search_columns=name'))
   })
 
@@ -109,7 +109,7 @@ describe('DataTable state', () => {
     await userEvent.click(screen.getByText('Next'))
     await waitFor(() => expect(lastUrl()).toMatch(/[?&]page=2(&|$)/))
 
-    await toggleColumn('name')
+    await toggleColumn('Name')
     await waitFor(() => {
       expect(lastUrl()).not.toContain('search=')
       expect(lastUrl()).toMatch(/[?&]page=1(&|$)/)

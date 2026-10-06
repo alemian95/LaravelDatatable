@@ -2,6 +2,18 @@
 
 All notable changes to `LaravelDatatable` will be documented in this file.
 
+## Unreleased
+
+### Fixed
+
+- `%`, `_`, `\` and `!` in the search term are matched literally. Previously `search=%` returned every row. The emitted SQL changes to `"col" like ? escape '!'` (`ilike` on Postgres).
+- Eloquent queries are always ordered by the primary key last, so rows that tie on the sorted column no longer repeat or disappear across pages. Queries with no sort are now ordered by primary key. Raw `DB::table()` queries and grouped, `distinct` and `union` queries are unchanged.
+- `RelationSearch` subqueries reference the outer query by its alias, so a declared relation search works on `DB::table('users as u')` (previously an SQL error).
+- React: the search box stays visible next to the bulk actions while rows are selected.
+- React: the column visibility menu shows `meta.label`, then a string `header`, instead of the column id. `meta.label` is new.
+- React: `defaultPerPage` is always among the rows-per-page options (with `10` the select used to be empty). New `perPageOptions` prop.
+- React: requests send `Accept: application/json` and `X-Requested-With: XMLHttpRequest` (your `headers` override them), so an expired session yields a 401 error instead of a login redirect. Superseded requests are aborted. A response that is not a paginator is reported as an error instead of crashing.
+
 ## v0.1.1 - 2026-10-04
 
 ### Fixed

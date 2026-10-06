@@ -19,10 +19,10 @@ final class RelationSearch
     ): self {
         $localKey ??= Str::singular($table).'_id';
 
-        return new self(function (Builder $query, string $baseTable, string $remoteColumn, string $term) use ($table, $localKey, $remoteKey): void {
+        return new self(function (Builder $query, string $baseTable, string $baseAlias, string $remoteColumn, string $term) use ($table, $localKey, $remoteKey): void {
             $query->orWhereExists(fn (QueryBuilder $sub) => $sub->from($table)
-                ->whereColumn("{$table}.{$remoteKey}", "{$baseTable}.{$localKey}")
-                ->whereLike("{$table}.{$remoteColumn}", "%{$term}%")
+                ->whereColumn("{$table}.{$remoteKey}", "{$baseAlias}.{$localKey}")
+                ->tap(fn (QueryBuilder $q) => ContainsLike::where($q, "{$table}.{$remoteColumn}", $term))
             );
         });
     }
@@ -32,12 +32,12 @@ final class RelationSearch
         ?string $foreignKey = null,
         string $localKey = 'id',
     ): self {
-        return new self(function (Builder $query, string $baseTable, string $remoteColumn, string $term) use ($table, $foreignKey, $localKey): void {
+        return new self(function (Builder $query, string $baseTable, string $baseAlias, string $remoteColumn, string $term) use ($table, $foreignKey, $localKey): void {
             $foreignKey ??= Str::singular($baseTable).'_id';
 
             $query->orWhereExists(fn (QueryBuilder $sub) => $sub->from($table)
-                ->whereColumn("{$table}.{$foreignKey}", "{$baseTable}.{$localKey}")
-                ->whereLike("{$table}.{$remoteColumn}", "%{$term}%")
+                ->whereColumn("{$table}.{$foreignKey}", "{$baseAlias}.{$localKey}")
+                ->tap(fn (QueryBuilder $q) => ContainsLike::where($q, "{$table}.{$remoteColumn}", $term))
             );
         });
     }
@@ -65,24 +65,29 @@ final class RelationSearch
     ): self {
         $relatedPivotKey ??= Str::singular($table).'_id';
 
-        return new self(function (Builder $query, string $baseTable, string $remoteColumn, string $term) use ($table, $pivot, $foreignPivotKey, $relatedPivotKey, $parentKey, $relatedKey): void {
+        return new self(function (Builder $query, string $baseTable, string $baseAlias, string $remoteColumn, string $term) use ($table, $pivot, $foreignPivotKey, $relatedPivotKey, $parentKey, $relatedKey): void {
             $foreignPivotKey ??= Str::singular($baseTable).'_id';
 
             $query->orWhereExists(fn (QueryBuilder $sub) => $sub->from($table)
                 ->join($pivot, "{$pivot}.{$relatedPivotKey}", '=', "{$table}.{$relatedKey}")
-                ->whereColumn("{$pivot}.{$foreignPivotKey}", "{$baseTable}.{$parentKey}")
-                ->whereLike("{$table}.{$remoteColumn}", "%{$term}%")
+                ->whereColumn("{$pivot}.{$foreignPivotKey}", "{$baseAlias}.{$parentKey}")
+                ->tap(fn (QueryBuilder $q) => ContainsLike::where($q, "{$table}.{$remoteColumn}", $term))
             );
         });
     }
 
     public static function custom(\Closure $resolver): self
     {
-        return new self(fn (Builder $query, string $baseTable, string $remoteColumn, string $term) => $resolver($query, $remoteColumn, $term));
+        return new self(fn (Builder $query, string $baseTable, string $baseAlias, string $remoteColumn, string $term) => $resolver($query, $remoteColumn, $term));
     }
 
-    public function apply(Builder $query, string $baseTable, string $remoteColumn, string $term): void
+    /**
+     * @param  string  $baseTable  Real table name of the outer query, used to derive default keys.
+     * @param  string|null  $baseAlias  Name the outer query's columns are referenced by
+     *                                  ("u" for "users as u"); defaults to $baseTable.
+     */
+    public function apply(Builder $query, string $baseTable, string $remoteColumn, string $term, ?string $baseAlias = null): void
     {
-        ($this->applier)($query, $baseTable, $remoteColumn, $term);
+        ($this->applier)($query, $baseTable, $baseAlias ?? $baseTable, $remoteColumn, $term);
     }
 }
