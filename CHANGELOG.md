@@ -2,9 +2,9 @@
 
 All notable changes to `LaravelDatatable` will be documented in this file.
 
-## Unreleased
+## v0.9.0 - 2026-10-06
 
-See [UPGRADE.md](UPGRADE.md) for the 0.1 → 0.9 migration.
+Beta of 1.0: the public API and HTTP contract are the ones 1.0 will freeze (see `docs/adr/0002-public-api-boundary.md`). See [UPGRADE.md](UPGRADE.md) for the 0.1 → 0.9 migration.
 
 ### Added
 
