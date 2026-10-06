@@ -59,7 +59,7 @@ describe('DataTable state', () => {
     await waitFor(() => {
       const url = lastUrl()
       expect(url).toContain('search=ann')
-      expect(url).toContain('page=1')
+      expect(url).toMatch(/[?&]page=1(&|$)/)
     })
   })
 
