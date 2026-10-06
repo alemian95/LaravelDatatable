@@ -11,6 +11,7 @@ All notable changes to `LaravelDatatable` will be documented in this file.
 - `RelationSearch` subqueries reference the outer query by its alias, so a declared relation search works on `DB::table('users as u')` (previously an SQL error).
 - React: the search box stays visible next to the bulk actions while rows are selected.
 - React: the column visibility menu shows `meta.label`, then a string `header`, instead of the column id. `meta.label` is new.
+- React: `defaultPerPage` is always among the rows-per-page options (with `10` the select used to be empty). New `perPageOptions` prop.
 
 ## v0.1.1 - 2026-10-04
 

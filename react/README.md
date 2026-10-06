@@ -130,6 +130,8 @@ interface DataTableProps<T> {
   endpoint: string                        // appended to config.baseUrl
   columns: ColumnDef<T, unknown>[]        // TanStack column defs + optional meta
   defaultPerPage?: number                 // default 15
+  perPageOptions?: number[]               // default [15, 25, 50]; defaultPerPage is always added.
+                                          // Keep them ≤ the backend's max_per_page (it clamps silently)
   filters?: FilterDef[]                   // renders the Filters slide-over
   bulkActions?: BulkAction<T>[]           // enables row selection + the bulk bar
   getRowId?: (row: T, i: number) => string // stable row identity (defaults to row.id)
@@ -142,6 +144,7 @@ Column `meta` extension:
 interface ColumnMeta {
   searchable?: boolean   // include this column id in search_columns
   sortKey?: string       // sort_by value to send (defaults to the column id)
+  label?: string         // name in the Columns menu (defaults to a string header, then the id)
 }
 ```
 
