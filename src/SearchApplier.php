@@ -7,6 +7,7 @@ use AleMian95\Datatable\Contracts\RelationSearchResolver;
 use AleMian95\Datatable\Contracts\SearchColumnResolver;
 use AleMian95\Datatable\Search\ContainsLike;
 use AleMian95\Datatable\Search\RelationSearch;
+use AleMian95\Datatable\Support\FromClause;
 use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -55,7 +56,7 @@ class SearchApplier implements QueryApplier
         }
 
         $term = $request->search;
-        $qualifier = $this->qualifierFor($builder);
+        $qualifier = FromClause::qualifier($builder);
 
         $builder->where(function (Builder $query) use ($resolved, $term, $baseTable, $qualifier): void {
             foreach ($resolved['flat'] as $field) {
@@ -176,31 +177,6 @@ class SearchApplier implements QueryApplier
         }
 
         return '';
-    }
-
-    /**
-     * Name to qualify base-table columns with, read from the from clause the
-     * query actually runs (Eloquent and relations included): the alias for
-     * "table as alias", the table otherwise, '' when the from clause is not a
-     * plain identifier (subquery). Unlike baseTableFor(), which needs the real
-     * table name to derive keys.
-     */
-    private function qualifierFor(Builder $builder): string
-    {
-        $from = match (true) {
-            $builder instanceof QueryBuilder => $builder->from,
-            $builder instanceof EloquentBuilder => $builder->getQuery()->from,
-            $builder instanceof Relation => $builder->getBaseQuery()->from,
-            default => null,
-        };
-
-        if (! is_string($from)) {
-            return '';
-        }
-
-        $parts = preg_split('/\s+as\s+/i', $from, 2);
-
-        return $parts[1] ?? $parts[0];
     }
 }
 

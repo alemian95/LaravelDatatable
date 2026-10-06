@@ -159,6 +159,7 @@ class DatatableApi implements JsonSerializable
             ),
             new SortApplier($this->customSorts, $this->apiDeclaredSortColumns),
             ...$this->appliers,
+            new KeyTiebreakerApplier,
         ];
 
         foreach ($appliers as $applier) {
