@@ -5,6 +5,9 @@ namespace AleMian95\Datatable\Contracts;
 use AleMian95\Datatable\Search\RelationSearch;
 use Illuminate\Contracts\Database\Query\Builder;
 
+/**
+ * @internal Not covered by semver; see docs/adr/0002-public-api-boundary.md.
+ */
 interface RelationSearchResolver
 {
     /**

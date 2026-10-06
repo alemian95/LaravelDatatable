@@ -10,11 +10,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * @internal Not covered by semver; see docs/adr/0002-public-api-boundary.md.
+ */
 class SortApplier implements QueryApplier
 {
     /**
      * @param  array<string, \Closure>  $customSorts
-     * @param  array<int, string>|null  $sortableColumns  Authoritative whitelist of sortable columns; null disables enforcement.
+     * @param  array<int, string>|null  $sortableColumns  Authoritative whitelist of sortable columns; null means only custom sorts apply.
      */
     public function __construct(
         protected array $customSorts = [],
@@ -38,12 +41,11 @@ class SortApplier implements QueryApplier
             return;
         }
 
-        // A declared whitelist is authoritative: a sort_by outside it (and not a
-        // custom sort key, handled above) is dropped with a warning rather than
-        // reaching the database. Null means enforcement is disabled (legacy).
-        if ($this->sortableColumns !== null && ! in_array($sortField, $this->sortableColumns, true)) {
+        // Only declared columns reach the database: an undeclared sort_by (no
+        // whitelist at all, or outside it) is dropped with a warning.
+        if ($this->sortableColumns === null || ! in_array($sortField, $this->sortableColumns, true)) {
             Log::warning(sprintf(
-                'SortApplier dropped sort_by [%s]: not in the whitelist declared via DatatableApi::withSortableColumns().',
+                'SortApplier dropped sort_by [%s]: not declared via DatatableApi::withSortableColumns().',
                 $sortField,
             ));
 
@@ -61,19 +63,6 @@ class SortApplier implements QueryApplier
 
     private function applyRelationSort(Builder $builder, string $sortField, string $sortDirection): void
     {
-        // Dot-notation sort requires an explicit whitelist. Without one we would
-        // have to invoke a client-named method on the model to discover the
-        // relation — a method like save()/delete() would run as a side effect of
-        // a read query. Only proceed when the dev has vouched for the path.
-        if ($this->sortableColumns === null) {
-            Log::warning(sprintf(
-                'SortApplier dropped sort_by [%s]: dot-notation sort requires an explicit whitelist via DatatableApi::withSortableColumns().',
-                $sortField,
-            ));
-
-            return;
-        }
-
         if (! ($builder instanceof EloquentBuilder || $builder instanceof Relation)) {
             Log::warning(sprintf(
                 'SortApplier dropped sort_by [%s]: dot-notation sort is only supported on Eloquent builders.',

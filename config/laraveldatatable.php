@@ -47,15 +47,14 @@ return [
         | Automatic column discovery
         |--------------------------------------------------------------------------
         |
-        | When true, the SearchApplier falls back to Schema introspection if
-        | neither DatatableApi::withSearchableColumns() nor the
-        | HasSearchableColumns contract on the model provides a whitelist.
-        |
-        | When false, declaring a whitelist is mandatory: a
-        | SearchColumnsNotConfiguredException is thrown otherwise.
+        | Off by default: discovery makes every text column searchable, including
+        | ones your API never exposes, so a client can probe them with LIKE.
+        | Prefer DatatableApi::withSearchableColumns() or the HasSearchableColumns
+        | contract on the model. Without either, a search request throws
+        | SearchColumnsNotConfiguredException unless this is true.
         |
         */
-        'auto_discover_columns' => true,
+        'auto_discover_columns' => false,
 
         /*
         |--------------------------------------------------------------------------

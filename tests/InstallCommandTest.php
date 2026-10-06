@@ -14,6 +14,10 @@ afterEach(function (): void {
             File::delete(base_path($file));
         }
     }
+
+    // The command publishes the config into the Testbench skeleton, which
+    // outlives the test and would shadow the package defaults in later runs.
+    File::delete(config_path('laraveldatatable.php'));
 });
 
 it('installs the npm package with npm by default and publishes the config', function (): void {

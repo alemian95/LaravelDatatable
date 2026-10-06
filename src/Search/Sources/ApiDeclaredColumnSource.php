@@ -2,6 +2,9 @@
 
 namespace AleMian95\Datatable\Search\Sources;
 
+/**
+ * @internal Not covered by semver; see docs/adr/0002-public-api-boundary.md.
+ */
 class ApiDeclaredColumnSource
 {
     /**

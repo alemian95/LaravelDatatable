@@ -6,6 +6,9 @@ use AleMian95\Datatable\DatatableRequest;
 use AleMian95\Datatable\Exceptions\SearchColumnsNotConfiguredException;
 use Illuminate\Contracts\Database\Query\Builder;
 
+/**
+ * @internal Not covered by semver; see docs/adr/0002-public-api-boundary.md.
+ */
 interface SearchColumnResolver
 {
     /**

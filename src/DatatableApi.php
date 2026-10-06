@@ -7,42 +7,71 @@ use AleMian95\Datatable\Contracts\RelationSearchResolver;
 use AleMian95\Datatable\Contracts\SearchColumnResolver;
 use AleMian95\Datatable\Search\RelationSearch;
 use Illuminate\Contracts\Database\Query\Builder;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Contracts\Support\Responsable;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Resources\Json\ResourceCollection;
 use Illuminate\Support\Facades\Log;
 use JsonSerializable;
+use Symfony\Component\HttpFoundation\Response;
 
-class DatatableApi implements JsonSerializable
+/**
+ * Public entry point; see docs/adr/0002-public-api-boundary.md.
+ */
+final class DatatableApi implements JsonSerializable, Responsable
 {
-    protected Builder $builder;
+    private Builder $builder;
 
-    protected DatatableRequest $request;
-
-    /** @var QueryApplier[] */
-    protected array $appliers = [];
+    private DatatableRequest $request;
 
     /** @var array<string, \Closure> */
-    protected array $customSorts = [];
+    private array $filters = [];
 
-    protected ?\Closure $customSearch = null;
+    /** @var array<int, \Closure> */
+    private array $legacyFilters = [];
+
+    /** @var array<string, \Closure> */
+    private array $customSorts = [];
+
+    private ?\Closure $customSearch = null;
 
     /** @var array<int, string>|null */
-    protected ?array $apiDeclaredSearchColumns = null;
+    private ?array $apiDeclaredSearchColumns = null;
 
     /** @var array<string, RelationSearch> */
-    protected array $relationSearchMap = [];
+    private array $relationSearchMap = [];
 
     /** @var array<int, string>|null */
-    protected ?array $apiDeclaredSortColumns = null;
+    private ?array $apiDeclaredSortColumns = null;
 
-    protected bool $hasResource = false;
+    /** @var class-string<JsonResource>|null */
+    private ?string $resourceClass = null;
 
     /**
-     * @var class-string
+     * @internal Use DatatableApi::for(). The argument-less form is deprecated.
      */
-    protected string $resourceClass;
-
-    public function __construct()
+    public function __construct(?Builder $query = null, ?Request $request = null)
     {
-        $this->request = DatatableRequest::fromRequest(request());
+        if ($query === null) {
+            trigger_error(
+                'new DatatableApi() + fromQuery() is deprecated and will be removed in 1.0; use DatatableApi::for($query).',
+                E_USER_DEPRECATED,
+            );
+        } else {
+            $this->builder = $query;
+        }
+
+        $this->request = DatatableRequest::fromRequest($request ?? request());
+    }
+
+    /**
+     * Entry point. Without an explicit request, the current one is read now.
+     */
+    public static function for(Builder $query, ?Request $request = null): self
+    {
+        return new self($query, $request);
     }
 
     /**
@@ -101,8 +130,8 @@ class DatatableApi implements JsonSerializable
      * the "sort_by" request parameter (dot-notation entries included, e.g.
      * "author.name"). When set, a "sort_by" outside the whitelist is dropped
      * with a warning instead of hitting the database. Keys declared through
-     * withCustomSorts() are always allowed regardless of this list. Leave unset
-     * to preserve the legacy behavior of sorting by any client-supplied column.
+     * withCustomSorts() are always allowed regardless of this list. Without it,
+     * only withCustomSorts() keys are sortable.
      *
      * @param  array<int, string>  $columns
      * @return $this
@@ -115,6 +144,8 @@ class DatatableApi implements JsonSerializable
     }
 
     /**
+     * @deprecated Use DatatableApi::for($query). Removed in 1.0.
+     *
      * @return $this
      */
     public function fromQuery(Builder $query): self
@@ -125,31 +156,98 @@ class DatatableApi implements JsonSerializable
     }
 
     /**
-     * @param  array<\Closure>  $filters
+     * Declare the client filters this endpoint accepts, keyed by the
+     * filter[<key>] name. A closure runs only when its key is present and
+     * receives the parsed value: a string, or ['from' => ?string, 'to' => ?string].
+     * Replaces any previous declaration.
+     *
+     * @param  array<string, \Closure>  $filters
      * @return $this
      */
-    public function withCustomFilters(array $filters): self
+    public function withFilters(array $filters): self
     {
-        $this->appliers[] = new FilterApplier($filters);
+        $this->filters = $filters;
 
         return $this;
     }
 
     /**
-     * @param  class-string  $resourceClass
+     * @deprecated Use withFilters() for client filters; apply fixed constraints
+     *             to the query passed to DatatableApi::for(). Removed in 1.0.
+     *
+     * @param  array<\Closure>  $filters
+     * @return $this
+     */
+    public function withCustomFilters(array $filters): self
+    {
+        trigger_error(
+            'DatatableApi::withCustomFilters() is deprecated and will be removed in 1.0; use withFilters() for client filters and constrain the query passed to DatatableApi::for() for fixed ones.',
+            E_USER_DEPRECATED,
+        );
+
+        $this->legacyFilters = array_values($filters);
+
+        return $this;
+    }
+
+    /**
+     * @param  class-string<JsonResource>  $resourceClass
      * @return $this
      */
     public function returnResource(string $resourceClass): self
     {
-        $this->hasResource = true;
         $this->resourceClass = $resourceClass;
 
         return $this;
     }
 
+    /**
+     * Runs the query on a clone of the builder, so calling it again (or
+     * serializing twice) never applies search and sort twice.
+     */
+    public function toPaginator(): LengthAwarePaginator|ResourceCollection
+    {
+        $builder = clone $this->builder;
+
+        foreach ($this->appliers() as $applier) {
+            $applier->apply($builder, $this->request);
+        }
+
+        if (config('laraveldatatable.debug.log_sql', false)) {
+            Log::info($builder->toRawSql());
+        }
+
+        $paginator = $builder->paginate($this->request->perPage, ['*'], 'page', $this->request->page);
+
+        return $this->resourceClass === null ? $paginator : $this->resourceClass::collection($paginator);
+    }
+
+    public function toResponse($request): Response
+    {
+        $result = $this->toPaginator();
+
+        return $result instanceof ResourceCollection
+            ? $result->toResponse($request)
+            : new JsonResponse($result);
+    }
+
     public function jsonSerialize(): mixed
     {
-        $appliers = [
+        $result = $this->toPaginator();
+
+        // A ResourceCollection serializes to its bare data list; use the same
+        // {data, links, meta} envelope that toResponse() sends.
+        return $result instanceof ResourceCollection
+            ? $result->response()->getData(true)
+            : $result;
+    }
+
+    /**
+     * @return array<int, QueryApplier>
+     */
+    private function appliers(): array
+    {
+        return [
             new SearchApplier(
                 app(SearchColumnResolver::class),
                 $this->customSearch,
@@ -158,26 +256,8 @@ class DatatableApi implements JsonSerializable
                 $this->relationSearchMap,
             ),
             new SortApplier($this->customSorts, $this->apiDeclaredSortColumns),
-            ...$this->appliers,
+            new FilterApplier($this->filters, $this->legacyFilters),
             new KeyTiebreakerApplier,
         ];
-
-        foreach ($appliers as $applier) {
-            $applier->apply($this->builder, $this->request);
-        }
-
-        if (config('laraveldatatable.debug.log_sql', false)) {
-            Log::info($this->builder->toRawSql());
-        }
-
-        $paginator = $this->builder->paginate($this->request->perPage);
-
-        if ($this->hasResource) {
-            $resource = $this->resourceClass;
-
-            return $resource::collection($paginator);
-        }
-
-        return $paginator;
     }
 }
