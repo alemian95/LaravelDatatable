@@ -5,6 +5,7 @@ namespace AleMian95\Datatable;
 use AleMian95\Datatable\Contracts\QueryApplier;
 use AleMian95\Datatable\Contracts\RelationSearchResolver;
 use AleMian95\Datatable\Contracts\SearchColumnResolver;
+use AleMian95\Datatable\Search\ContainsLike;
 use AleMian95\Datatable\Search\RelationSearch;
 use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
@@ -60,7 +61,7 @@ class SearchApplier implements QueryApplier
             foreach ($resolved['flat'] as $field) {
                 // Qualified so a join added later (relation sort, user joins) cannot
                 // make the column ambiguous.
-                $query->orWhereLike($qualifier === '' ? $field : "{$qualifier}.{$field}", "%{$term}%");
+                ContainsLike::orWhere($query, $qualifier === '' ? $field : "{$qualifier}.{$field}", $term);
             }
 
             foreach ($resolved['dotted'] as $entry) {
@@ -247,6 +248,6 @@ final class LegacyHasDottedEntry implements DottedEntry
             return;
         }
 
-        $query->orWhereHas($relationPath, fn (EloquentBuilder $q) => $q->whereLike($column, "%{$term}%"));
+        $query->orWhereHas($relationPath, fn (EloquentBuilder $q) => ContainsLike::where($q, $column, $term));
     }
 }

@@ -22,7 +22,7 @@ final class RelationSearch
         return new self(function (Builder $query, string $baseTable, string $remoteColumn, string $term) use ($table, $localKey, $remoteKey): void {
             $query->orWhereExists(fn (QueryBuilder $sub) => $sub->from($table)
                 ->whereColumn("{$table}.{$remoteKey}", "{$baseTable}.{$localKey}")
-                ->whereLike("{$table}.{$remoteColumn}", "%{$term}%")
+                ->tap(fn (QueryBuilder $q) => ContainsLike::where($q, "{$table}.{$remoteColumn}", $term))
             );
         });
     }
@@ -37,7 +37,7 @@ final class RelationSearch
 
             $query->orWhereExists(fn (QueryBuilder $sub) => $sub->from($table)
                 ->whereColumn("{$table}.{$foreignKey}", "{$baseTable}.{$localKey}")
-                ->whereLike("{$table}.{$remoteColumn}", "%{$term}%")
+                ->tap(fn (QueryBuilder $q) => ContainsLike::where($q, "{$table}.{$remoteColumn}", $term))
             );
         });
     }
@@ -71,7 +71,7 @@ final class RelationSearch
             $query->orWhereExists(fn (QueryBuilder $sub) => $sub->from($table)
                 ->join($pivot, "{$pivot}.{$relatedPivotKey}", '=', "{$table}.{$relatedKey}")
                 ->whereColumn("{$pivot}.{$foreignPivotKey}", "{$baseTable}.{$parentKey}")
-                ->whereLike("{$table}.{$remoteColumn}", "%{$term}%")
+                ->tap(fn (QueryBuilder $q) => ContainsLike::where($q, "{$table}.{$remoteColumn}", $term))
             );
         });
     }
