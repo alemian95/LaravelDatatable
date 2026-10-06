@@ -90,3 +90,17 @@ it('strips " as alias" suffixes from eager-load keys both for resolution and pre
     expect($columns)->toContain('posts.body');
     expect($columns)->not->toContain('posts as p.title');
 });
+
+it('introspects each table once and only once per source instance', function () {
+    $source = new AutoDiscoveryColumnSource([]);
+    DB::enableQueryLog();
+
+    $source->columns(TestUser::query());
+    $first = count(DB::getQueryLog());
+    $source->columns(DB::table('test_users'));
+
+    // A constant number of schema queries for the whole table (SQLite needs
+    // two), not one per column as before; none the second time.
+    expect($first)->toBeLessThanOrEqual(2)
+        ->and(count(DB::getQueryLog()))->toBe($first);
+});

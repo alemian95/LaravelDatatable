@@ -27,6 +27,7 @@ See [UPGRADE.md](UPGRADE.md) for the 0.1 → 0.9 migration.
 
 ### Fixed
 
+- Auto-discovery reads each table's schema with one `Schema::getColumns()` call, cached for the request, instead of one type lookup per column.
 - Array values for `search_columns`, `per_page` or `page` (e.g. `search_columns[]=x`) no longer cause a 500; non-numeric `per_page`/`page` fall back to the defaults.
 - `%`, `_`, `\` and `!` in the search term are matched literally. Previously `search=%` returned every row. The emitted SQL changes to `"col" like ? escape '!'` (`ilike` on Postgres).
 - Eloquent queries are always ordered by the primary key last, so rows that tie on the sorted column no longer repeat or disappear across pages. Queries with no sort are now ordered by primary key. Raw `DB::table()` queries and grouped, `distinct` and `union` queries are unchanged.

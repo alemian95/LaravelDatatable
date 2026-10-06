@@ -24,13 +24,21 @@ class AutoDiscoveryColumnSource
     public function __construct(private array $blacklist) {}
 
     /**
+     * Searchable columns per table. The source lives as long as the scoped
+     * resolver (one HTTP request or job), so the schema is read once per table.
+     *
+     * @var array<string, array<int, string>>
+     */
+    private array $searchableColumnsByTable = [];
+
+    /**
      * @return array<int, string>
      */
     public function columns(Builder $builder): array
     {
         if ($builder instanceof EloquentBuilder || $builder instanceof Relation) {
             $model = $builder->getModel();
-            $columns = $this->filterColumns($model->getTable(), Schema::getColumnListing($model->getTable()));
+            $columns = $this->searchableColumns($model->getTable());
 
             if ($builder instanceof EloquentBuilder) {
                 foreach (array_keys($builder->getEagerLoads()) as $relationName) {
@@ -48,28 +56,27 @@ class AutoDiscoveryColumnSource
                 return [];
             }
 
-            return array_values($this->filterColumns($table, Schema::getColumnListing($table)));
+            return $this->searchableColumns($table);
         }
 
         return [];
     }
 
     /**
-     * @param  array<int, string>  $columns
      * @return array<int, string>
      */
-    private function filterColumns(string $table, array $columns): array
+    private function searchableColumns(string $table): array
     {
-        return array_filter($columns, function (string $column) use ($table): bool {
-            return $this->isSearchableType($table, $column) && ! $this->isBlacklisted($column);
-        });
-    }
-
-    private function isSearchableType(string $table, string $column): bool
-    {
-        $type = strtolower(Schema::getColumnType($table, $column));
-
-        return in_array($type, self::SEARCHABLE_TYPES, true);
+        // One Schema::getColumns() call returns names and types together,
+        // instead of a type lookup per column.
+        return $this->searchableColumnsByTable[$table] ??= array_values(array_map(
+            fn (array $column): string => $column['name'],
+            array_filter(
+                Schema::getColumns($table),
+                fn (array $column): bool => in_array(strtolower($column['type_name']), self::SEARCHABLE_TYPES, true)
+                    && ! $this->isBlacklisted($column['name']),
+            ),
+        ));
     }
 
     private function isBlacklisted(string $column): bool
@@ -128,8 +135,7 @@ class AutoDiscoveryColumnSource
         $cleanRelationName = implode('.', $cleanParts);
 
         $relatedTable = $currentModel->getTable();
-        $rawColumns = Schema::getColumnListing($relatedTable);
-        $filtered = $this->filterColumns($relatedTable, $rawColumns);
+        $filtered = $this->searchableColumns($relatedTable);
 
         return array_values(array_map(
             fn (string $column): string => "{$cleanRelationName}.{$column}",
