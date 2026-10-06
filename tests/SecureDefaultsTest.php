@@ -27,7 +27,7 @@ it('ignores sort_by with a warning when no sortable columns are declared', funct
 
     (new SortApplier)->apply($builder, DatatableRequest::fromRequest(defaultsRequest(['sort_by' => 'password'])));
 
-    expect($builder->toSql())->not->toContain('order by');
+    expect(sql($builder))->not->toContain('order by');
     Log::shouldHaveReceived('warning')->withArgs(fn (string $m) => str_contains($m, '[password]'))->once();
 });
 
@@ -37,7 +37,7 @@ it('still applies a custom sort when no whitelist is declared', function () {
     (new SortApplier(['full' => fn ($q, string $dir) => $q->orderBy('last_name', $dir)]))
         ->apply($builder, DatatableRequest::fromRequest(defaultsRequest(['sort_by' => 'full'])));
 
-    expect($builder->toSql())->toContain('order by "last_name" asc');
+    expect(sql($builder))->toContain('order by "last_name" asc');
 });
 
 it('warns about requested search columns outside the whitelist', function () {

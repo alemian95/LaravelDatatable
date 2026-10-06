@@ -293,6 +293,14 @@ A declared spec wins over Eloquent auto-discovery for the same relation key, whi
 composer test
 ```
 
+The suite runs on in-memory SQLite by default. To run it against MySQL or Postgres, point it at a server with `DB_CONNECTION` (`mysql` | `pgsql`), plus `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` as needed. The defaults are `127.0.0.1`, `testing`, `root`/`postgres` and `secret`:
+
+```bash
+DB_CONNECTION=pgsql DB_PORT=5432 composer test
+```
+
+CI runs it on SQLite, MySQL 8.4 and Postgres 17.
+
 ## Changelog
 
 Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.

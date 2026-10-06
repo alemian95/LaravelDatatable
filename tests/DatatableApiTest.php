@@ -46,7 +46,7 @@ it('paginates with the page of the explicit request', function () {
 });
 
 it('can run twice without applying search and sort twice, leaving the query untouched', function ($query) {
-    $sqlBefore = $query->toSql();
+    $sqlBefore = sql($query);
     $api = DatatableApi::for($query, datatableRequest(['search' => 'jane', 'sort_by' => 'id']))
         ->withSearchableColumns(['title'])
         ->withSortableColumns(['id']);
@@ -55,7 +55,7 @@ it('can run twice without applying search and sort twice, leaving the query unto
     $second = $api->toPaginator()->total();
 
     expect($first)->toBe(1)->and($second)->toBe(1)
-        ->and($query->toSql())->toBe($sqlBefore);
+        ->and(sql($query))->toBe($sqlBefore);
 })->with([
     'eloquent' => fn () => TestPost::query(),
     'raw' => fn () => DB::table('test_posts'),

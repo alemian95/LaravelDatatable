@@ -11,7 +11,7 @@ it('belongsTo applies orWhereExists with default Laravel keys', function () {
         $spec->apply($q, 'books', 'name', 'jane');
     });
 
-    $sql = $query->toRawSql();
+    $sql = rawSql($query);
 
     expect($sql)
         ->toContain('exists')
@@ -29,7 +29,7 @@ it('belongsTo respects custom localKey and remoteKey', function () {
         $spec->apply($q, 'books', 'name', 'jane');
     });
 
-    $sql = $query->toRawSql();
+    $sql = rawSql($query);
 
     expect($sql)
         ->toContain('"writers"."uuid" = "books"."written_by"')
@@ -55,7 +55,7 @@ it('hasOne applies EXISTS with default foreignKey derived from baseTable', funct
         $spec->apply($q, 'users', 'bio', 'jane');
     });
 
-    $sql = $query->toRawSql();
+    $sql = rawSql($query);
 
     expect($sql)
         ->toContain('from "profiles"')
@@ -71,7 +71,7 @@ it('hasOne respects custom foreignKey and localKey', function () {
         $spec->apply($q, 'users', 'bio', 'jane');
     });
 
-    expect($query->toRawSql())
+    expect(rawSql($query))
         ->toContain('"profiles"."u_id" = "users"."uuid"');
 });
 
@@ -84,7 +84,7 @@ it('hasMany produces the same SQL shape as hasOne', function () {
     $hasManyQuery->where(fn ($q) => RelationSearch::hasMany('posts')->apply($q, 'users', 'title', 'jane')
     );
 
-    expect($hasManyQuery->toRawSql())->toBe($hasOneQuery->toRawSql());
+    expect(rawSql($hasManyQuery))->toBe(rawSql($hasOneQuery));
 });
 
 it('belongsToMany applies EXISTS with pivot inner join and default keys', function () {
@@ -95,7 +95,7 @@ it('belongsToMany applies EXISTS with pivot inner join and default keys', functi
         $spec->apply($q, 'users', 'label', 'admin');
     });
 
-    $sql = $query->toRawSql();
+    $sql = rawSql($query);
 
     expect($sql)
         ->toContain('from "roles"')
@@ -118,7 +118,7 @@ it('belongsToMany respects custom pivot key overrides', function () {
         $spec->apply($q, 'users', 'label', 'admin');
     });
 
-    $sql = $query->toRawSql();
+    $sql = rawSql($query);
 
     expect($sql)
         ->toContain('"role_user"."r_id" = "roles"."id"')
@@ -138,7 +138,7 @@ it('belongsToMany respects custom parentKey and relatedKey', function () {
         $spec->apply($q, 'users', 'label', 'admin');
     });
 
-    $sql = $query->toRawSql();
+    $sql = rawSql($query);
 
     expect($sql)
         ->toContain('"role_user"."role_id" = "roles"."slug"')
@@ -178,5 +178,5 @@ it('custom allows the user closure to mutate the query freely', function () {
     $query = DB::table('books');
     $query->where(fn ($q) => $spec->apply($q, 'books', 'name', 'jane'));
 
-    expect($query->toRawSql())->toContain("'set-by-custom'");
+    expect(rawSql($query))->toContain("'set-by-custom'");
 });
