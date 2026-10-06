@@ -221,7 +221,8 @@ final class DatatableApi implements JsonSerializable, Responsable
             Log::info($builder->toRawSql());
         }
 
-        $paginator = $builder->paginate($this->request->perPage, ['*'], 'page', $this->request->page);
+        $paginator = $builder->paginate($this->request->perPage, ['*'], 'page', $this->request->page)
+            ->withPath($this->request->url);
 
         return $this->resourceClass === null ? $paginator : $this->resourceClass::collection($paginator);
     }

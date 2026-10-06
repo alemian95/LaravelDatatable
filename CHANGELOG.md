@@ -27,6 +27,8 @@ See [UPGRADE.md](UPGRADE.md) for the 0.1 → 0.9 migration.
 
 ### Fixed
 
+- Pagination links use the URL of the request passed to `DatatableApi::for()`, not the global one.
+- Dropped filter keys are logged in a single warning per request.
 - `search=0` is a real search term; it used to be treated as empty.
 - Auto-discovery reads each table's schema with one `Schema::getColumns()` call, cached for the request, instead of one type lookup per column.
 - Array values for `search_columns`, `per_page` or `page` (e.g. `search_columns[]=x`) no longer cause a 500; non-numeric `per_page`/`page` fall back to the defaults.

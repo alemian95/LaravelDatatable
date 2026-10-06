@@ -115,3 +115,12 @@ it('searches for the term "0"', function () {
 
     expect($result->total())->toBe(1);
 });
+
+it('builds pagination links from the explicit request URL', function () {
+    app()->instance('request', Request::create('/somewhere-else'));
+
+    $result = DatatableApi::for(TestUser::query(), Request::create('/users', 'GET', ['per_page' => 1]))->toPaginator();
+
+    expect($result->path())->toBe('http://localhost/users')
+        ->and($result->nextPageUrl())->toBe('http://localhost/users?page=2');
+});
