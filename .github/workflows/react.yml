@@ -18,6 +18,12 @@ jobs:
   build-test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22']
+        react: ['18', '19']
+    name: Node ${{ matrix.node }} - React ${{ matrix.react }}
     defaults:
       run:
         working-directory: react
@@ -28,12 +34,17 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v7
         with:
-          node-version: '20'
+          node-version: ${{ matrix.node }}
           cache: npm
           cache-dependency-path: react/package-lock.json
 
       - name: Install dependencies
         run: npm ci
+
+      # The dev toolchain pins React 18; swap in the peer version under test.
+      - name: Install React ${{ matrix.react }}
+        if: matrix.react != '18'
+        run: npm install --no-save react@${{ matrix.react }} react-dom@${{ matrix.react }} @types/react@${{ matrix.react }} @types/react-dom@${{ matrix.react }}
 
       - name: Typecheck
         run: npm run typecheck
