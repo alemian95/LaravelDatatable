@@ -25,6 +25,14 @@ dependency and gets installed automatically. You do **not** need to install or c
 `@tanstack/react-query` yourself — `DatatableProvider` owns an internal `QueryClient`. To
 share your app's client instead, pass it: `<DatatableProvider queryClient={yourClient} …>`.
 
+> **Using pnpm (or another strict `node_modules`)?** Those layouts don't expose a library's
+> transitive dependencies to your own code. As long as you import everything from
+> `@alemian95/laraveldatatable-react` — including `ColumnDef`, which this package re-exports
+> (see the example below) — you don't need to add anything. But if you import
+> `@tanstack/react-table` or `@tanstack/react-query` **directly** in your own files, declare
+> them yourself: `pnpm add @tanstack/react-table @tanstack/react-query`. With npm or Yarn the
+> transitive packages are hoisted, so direct imports resolve without this step.
+
 ### Tailwind
 
 The components ship pre-written utility classes, so Tailwind must scan the package's `dist`
