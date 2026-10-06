@@ -91,3 +91,29 @@ it('drops malformed filter values and records their keys without logging', funct
 it('ignores a filter parameter that is not an array', function () {
     expect(makePerPageRequest(['filter' => 'status'])->filters)->toBe([]);
 });
+
+it('ignores array values for every scalar parameter', function () {
+    $request = makePerPageRequest([
+        'search' => ['a'],
+        'search_columns' => ['first_name'],
+        'sort_by' => ['email'],
+        'sort_order' => ['desc'],
+        'per_page' => ['50'],
+        'page' => ['2'],
+    ]);
+
+    expect($request->search)->toBeNull()
+        ->and($request->searchColumns)->toBe([])
+        ->and($request->sortBy)->toBeNull()
+        ->and($request->sortOrder)->toBe('asc')
+        ->and($request->perPage)->toBe(15)
+        ->and($request->page)->toBe(1);
+});
+
+it('tolerates env-driven string values in the per_page config', function () {
+    config()->set('laraveldatatable.default.per_page', '25');
+    config()->set('laraveldatatable.default.max_per_page', '50');
+
+    expect(makePerPageRequest()->perPage)->toBe(25)
+        ->and(makePerPageRequest(['per_page' => 80])->perPage)->toBe(50);
+});

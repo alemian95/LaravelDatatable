@@ -122,3 +122,12 @@ it('stays quiet about malformed filter values while legacy filters may read them
 
     Log::shouldNotHaveReceived('warning');
 });
+
+it('reports every dropped filter key in one warning per request', function () {
+    Log::spy();
+
+    filtered(['filter' => ['a' => 'x', 'b' => 'y', 'c' => ['z']]])->withFilters([])->toPaginator();
+
+    Log::shouldHaveReceived('warning')->once();
+    Log::shouldHaveReceived('warning')->withArgs(fn (string $m) => str_contains($m, '[a, b, c]'));
+});

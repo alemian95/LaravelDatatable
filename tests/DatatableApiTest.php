@@ -46,7 +46,7 @@ it('paginates with the page of the explicit request', function () {
 });
 
 it('can run twice without applying search and sort twice, leaving the query untouched', function ($query) {
-    $sqlBefore = $query->toSql();
+    $sqlBefore = sql($query);
     $api = DatatableApi::for($query, datatableRequest(['search' => 'jane', 'sort_by' => 'id']))
         ->withSearchableColumns(['title'])
         ->withSortableColumns(['id']);
@@ -55,7 +55,7 @@ it('can run twice without applying search and sort twice, leaving the query unto
     $second = $api->toPaginator()->total();
 
     expect($first)->toBe(1)->and($second)->toBe(1)
-        ->and($query->toSql())->toBe($sqlBefore);
+        ->and(sql($query))->toBe($sqlBefore);
 })->with([
     'eloquent' => fn () => TestPost::query(),
     'raw' => fn () => DB::table('test_posts'),
@@ -104,4 +104,23 @@ it('serializes a resource result with the same envelope as the response', functi
 
     expect($payload['meta']['total'])->toBe(2)
         ->and($payload['data'])->toHaveCount(2);
+});
+
+it('searches for the term "0"', function () {
+    TestUser::create(['first_name' => 'Zero', 'last_name' => 'X', 'email' => 'a0@test']);
+
+    $result = DatatableApi::for(TestUser::query(), datatableRequest(['search' => '0']))
+        ->withSearchableColumns(['email'])
+        ->toPaginator();
+
+    expect($result->total())->toBe(1);
+});
+
+it('builds pagination links from the explicit request URL', function () {
+    app()->instance('request', Request::create('/somewhere-else'));
+
+    $result = DatatableApi::for(TestUser::query(), Request::create('/users', 'GET', ['per_page' => 1]))->toPaginator();
+
+    expect($result->path())->toBe('http://localhost/users')
+        ->and($result->nextPageUrl())->toBe('http://localhost/users?page=2');
 });

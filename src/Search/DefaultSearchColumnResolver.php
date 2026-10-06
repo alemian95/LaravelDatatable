@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AleMian95\Datatable\Search;
 
 use AleMian95\Datatable\Contracts\SearchColumnResolver;

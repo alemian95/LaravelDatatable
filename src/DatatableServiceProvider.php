@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AleMian95\Datatable;
 
 use AleMian95\Datatable\Commands\InstallCommand;
@@ -30,14 +32,17 @@ class DatatableServiceProvider extends PackageServiceProvider
         // multi-tenant context that swaps laraveldatatable.search.*). The
         // resolver itself is stateless, so the per-request construction cost
         // is negligible.
-        $this->app->scoped(SearchColumnResolver::class, function ($app): DefaultSearchColumnResolver {
-            $config = $app['config']->get('laraveldatatable.search', []);
+        $this->app->scoped(SearchColumnResolver::class, function (): DefaultSearchColumnResolver {
+            // Read loosely: published config often holds env() strings or nulls,
+            // which the typed config()->array()/boolean() getters reject.
+            $blacklist = config('laraveldatatable.search.auto_discovery_blacklist');
+            $discover = config('laraveldatatable.search.auto_discover_columns');
 
             return new DefaultSearchColumnResolver(
                 new ApiDeclaredColumnSource,
                 new ModelDeclaredColumnSource,
-                new AutoDiscoveryColumnSource($config['auto_discovery_blacklist'] ?? []),
-                (bool) ($config['auto_discover_columns'] ?? false),
+                new AutoDiscoveryColumnSource(is_array($blacklist) ? array_values(array_filter($blacklist, 'is_string')) : []),
+                filter_var($discover, FILTER_VALIDATE_BOOL),
             );
         });
 

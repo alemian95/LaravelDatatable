@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AleMian95\Datatable\Search;
 
 use Illuminate\Contracts\Database\Query\Builder;

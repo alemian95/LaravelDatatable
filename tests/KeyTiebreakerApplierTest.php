@@ -12,7 +12,7 @@ function applyTiebreaker($builder): string
 {
     (new KeyTiebreakerApplier)->apply($builder, DatatableRequest::fromRequest(Request::create('/')));
 
-    return $builder->toSql();
+    return sql($builder);
 }
 
 it('orders by the qualified primary key after the existing orders', function () {
@@ -57,6 +57,6 @@ it('is applied by DatatableApi after the client sort', function () {
 
     DatatableApi::for(TestUser::query())->withSortableColumns(['last_name'])->jsonSerialize();
 
-    expect(collect(DB::getQueryLog())->last()['query'])
+    expect(normalizeSql(collect(DB::getQueryLog())->last()['query']))
         ->toContain('order by "last_name" asc, "test_users"."id" asc');
 });

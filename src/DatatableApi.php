@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AleMian95\Datatable;
 
 use AleMian95\Datatable\Contracts\QueryApplier;
@@ -204,6 +206,8 @@ final class DatatableApi implements JsonSerializable, Responsable
     /**
      * Runs the query on a clone of the builder, so calling it again (or
      * serializing twice) never applies search and sort twice.
+     *
+     * @return LengthAwarePaginator<int, mixed>|ResourceCollection
      */
     public function toPaginator(): LengthAwarePaginator|ResourceCollection
     {
@@ -217,7 +221,8 @@ final class DatatableApi implements JsonSerializable, Responsable
             Log::info($builder->toRawSql());
         }
 
-        $paginator = $builder->paginate($this->request->perPage, ['*'], 'page', $this->request->page);
+        $paginator = $builder->paginate($this->request->perPage, ['*'], 'page', $this->request->page)
+            ->withPath($this->request->url);
 
         return $this->resourceClass === null ? $paginator : $this->resourceClass::collection($paginator);
     }

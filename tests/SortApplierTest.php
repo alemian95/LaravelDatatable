@@ -17,7 +17,7 @@ it('skips sorting when the request has no sort_by', function () {
 
     (new SortApplier)->apply($builder, makeSortRequest());
 
-    expect($builder->toSql())->not->toContain('order by');
+    expect(sql($builder))->not->toContain('order by');
 });
 
 it('applies the sort when sort_by is inside the declared whitelist', function () {
@@ -25,7 +25,7 @@ it('applies the sort when sort_by is inside the declared whitelist', function ()
 
     (new SortApplier([], ['first_name', 'email']))->apply($builder, makeSortRequest(['sort_by' => 'email']));
 
-    expect($builder->toSql())->toContain('order by')->toContain('"email"');
+    expect(sql($builder))->toContain('order by')->toContain('"email"');
 });
 
 it('drops the sort with a warning when sort_by is outside the whitelist', function () {
@@ -35,7 +35,7 @@ it('drops the sort with a warning when sort_by is outside the whitelist', functi
 
     (new SortApplier([], ['first_name']))->apply($builder, makeSortRequest(['sort_by' => 'password']));
 
-    expect($builder->toSql())->not->toContain('order by');
+    expect(sql($builder))->not->toContain('order by');
 });
 
 it('always allows a custom sort key regardless of the whitelist', function () {
@@ -62,7 +62,7 @@ it('drops dot-notation sort when no whitelist is declared (no arbitrary method c
     // Without a whitelist this must NOT invoke save()/delete()/etc on the model.
     (new SortApplier)->apply($builder, makeSortRequest(['sort_by' => 'save.id']));
 
-    expect($builder->toSql())->not->toContain('order by')->not->toContain('join');
+    expect(sql($builder))->not->toContain('order by')->not->toContain('join');
 });
 
 it('joins and sorts on a whitelisted BelongsTo dot-notation column', function () {
@@ -71,7 +71,7 @@ it('joins and sorts on a whitelisted BelongsTo dot-notation column', function ()
     (new SortApplier([], ['author.first_name']))
         ->apply($builder, makeSortRequest(['sort_by' => 'author.first_name', 'sort_order' => 'desc']));
 
-    $sql = $builder->toSql();
+    $sql = sql($builder);
 
     expect($sql)
         ->toContain('left join "test_users" as "author"')
@@ -87,5 +87,5 @@ it('drops a whitelisted dotted sort whose segment is not a BelongsTo relation', 
     // "title" is a column, not a relation.
     (new SortApplier([], ['title.x']))->apply($builder, makeSortRequest(['sort_by' => 'title.x']));
 
-    expect($builder->toSql())->not->toContain('order by')->not->toContain('join');
+    expect(sql($builder))->not->toContain('order by')->not->toContain('join');
 });

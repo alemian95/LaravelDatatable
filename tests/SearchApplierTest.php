@@ -37,7 +37,7 @@ it('skips the search when the request has no search term', function () {
 
     $applier->apply($builder, makeApplierRequest());
 
-    expect($builder->toSql())->not->toContain('like');
+    expect(sql($builder))->not->toContain('like');
 });
 
 it('runs the customSearch closure when provided, bypassing the resolver', function () {
@@ -54,7 +54,7 @@ it('runs the customSearch closure when provided, bypassing the resolver', functi
     $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
 
     expect($called)->toBeTrue();
-    expect($builder->toSql())->toContain('"first_name"');
+    expect(sql($builder))->toContain('"first_name"');
 });
 
 it('applies LIKE clauses on the columns returned by the resolver', function () {
@@ -66,7 +66,7 @@ it('applies LIKE clauses on the columns returned by the resolver', function () {
 
     $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
 
-    $sql = strtolower($builder->toSql());
+    $sql = strtolower(sql($builder));
     expect($sql)->toContain('"first_name"');
     expect($sql)->toContain('"email"');
     expect($sql)->toContain('like');
@@ -79,10 +79,10 @@ it('does not add any WHERE clause when the resolver returns an empty array', fun
     $applier = new SearchApplier($resolver);
     $builder = ApplierSearchableUser::query();
 
-    $beforeSql = $builder->toSql();
+    $beforeSql = sql($builder);
     $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
 
-    expect($builder->toSql())->toBe($beforeSql);
+    expect(sql($builder))->toBe($beforeSql);
 });
 
 it('passes the apiDeclaredColumns through to the resolver', function () {
@@ -113,7 +113,7 @@ it('logs a warning and drops dotted entries when the builder is a raw QueryBuild
 
     $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
 
-    $sql = strtolower($builder->toSql());
+    $sql = strtolower(sql($builder));
     expect($sql)->toContain('"first_name"');
     expect($sql)->not->toContain('posts');
 });
@@ -127,10 +127,10 @@ it('skips the WHERE clause entirely when every resolved column is dotted on a ra
     $applier = new SearchApplier($resolver);
     $builder = DB::table('test_users');
 
-    $beforeSql = $builder->toSql();
+    $beforeSql = sql($builder);
     $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
 
-    expect($builder->toSql())->toBe($beforeSql);
+    expect(sql($builder))->toBe($beforeSql);
 });
 
 it('processes dotted entries normally on an Eloquent builder without logging a warning', function () {
@@ -146,7 +146,7 @@ it('processes dotted entries normally on an Eloquent builder without logging a w
 
     $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
 
-    $sql = strtolower($builder->toSql());
+    $sql = strtolower(sql($builder));
     expect($sql)->toContain('"first_name"');
     expect($sql)->toContain('exists');
     expect($sql)->toContain('"test_posts"'); // EXISTS subquery against test_posts
@@ -166,7 +166,7 @@ it('emits orWhereExists for a single-hop dotted column on raw with a declared sp
 
     $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
 
-    $sql = strtolower($builder->toRawSql());
+    $sql = strtolower(rawSql($builder));
 
     expect($sql)
         ->toContain('exists')
@@ -188,10 +188,10 @@ it('drops a single-hop dotted column on raw when no declared spec is available',
     $applier = new SearchApplier($columnResolver, null, null, $relationResolver, []);
     $builder = DB::table('test_posts');
 
-    $beforeSql = $builder->toSql();
+    $beforeSql = sql($builder);
     $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
 
-    expect($builder->toSql())->toBe($beforeSql);
+    expect(sql($builder))->toBe($beforeSql);
 });
 
 it('emits orWhereExists for a single-hop dotted column on Eloquent via auto-discovery', function () {
@@ -207,7 +207,7 @@ it('emits orWhereExists for a single-hop dotted column on Eloquent via auto-disc
 
     $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
 
-    $sql = strtolower($builder->toRawSql());
+    $sql = strtolower(rawSql($builder));
 
     expect($sql)
         ->toContain('exists')
@@ -229,7 +229,7 @@ it('declared map overrides Eloquent auto-discovery for the same relation key', f
 
     $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
 
-    expect($builder->toRawSql())
+    expect(rawSql($builder))
         ->toContain('"manual_marker"')
         ->toContain("'first_name:jane'");
 });
@@ -245,7 +245,7 @@ it('combines a flat column and a single-hop dotted column in one nested WHERE', 
 
     $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
 
-    $sql = strtolower($builder->toRawSql());
+    $sql = strtolower(rawSql($builder));
 
     expect($sql)
         ->toContain('"title" like')
@@ -266,7 +266,7 @@ it('preserves the legacy orWhereHas path for multi-hop Eloquent without a declar
 
     $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
 
-    $sql = strtolower($builder->toRawSql());
+    $sql = strtolower(rawSql($builder));
 
     // orWhereHas('author.posts', ...) generates nested EXISTS:
     // outer on test_users (author), inner on test_posts with "title" like ...
@@ -290,10 +290,10 @@ it('drops a multi-hop dotted column on raw with a warning', function () {
     $applier = new SearchApplier($columnResolver, null, null, $relationResolver, []);
     $builder = DB::table('test_posts');
 
-    $beforeSql = $builder->toSql();
+    $beforeSql = sql($builder);
     $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
 
-    expect($builder->toSql())->toBe($beforeSql);
+    expect(sql($builder))->toBe($beforeSql);
 });
 
 it('drops dotted columns and warns when the base table cannot be inferred (subquery from)', function () {
@@ -315,7 +315,7 @@ it('drops dotted columns and warns when the base table cannot be inferred (subqu
 
     $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
 
-    $sql = strtolower($builder->toRawSql());
+    $sql = strtolower(rawSql($builder));
 
     // Flat column applied; dotted columns dropped (no EXISTS, no test_users)
     expect($sql)->toContain('"first_name" like');
@@ -340,7 +340,7 @@ it('strips a table alias from baseTable so default-key derivation works on alias
 
     $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
 
-    $sql = strtolower($builder->toRawSql());
+    $sql = strtolower(rawSql($builder));
 
     expect($sql)
         ->toContain('"test_posts"."test_user_id" = "u"."id"')
@@ -377,10 +377,10 @@ it('drops a multi-hop dotted column on raw even when a single-segment spec is de
     $applier = new SearchApplier($columnResolver, null, null, $relationResolver, $map);
     $builder = DB::table('test_posts');
 
-    $beforeSql = $builder->toSql();
+    $beforeSql = sql($builder);
     $applier->apply($builder, makeApplierRequest(['search' => 'jane']));
 
-    expect($builder->toSql())->toBe($beforeSql);
+    expect(sql($builder))->toBe($beforeSql);
 });
 
 it('qualifies flat search columns so a relation-sort join does not make them ambiguous', function () {
@@ -407,7 +407,7 @@ it('qualifies flat search columns with the table alias on a raw aliased query', 
     $builder = DB::table('test_users as u');
     (new SearchApplier($resolver))->apply($builder, makeApplierRequest(['search' => 'jane']));
 
-    expect($builder->toSql())->toContain('"u"."first_name"');
+    expect(sql($builder))->toContain('"u"."first_name"');
 });
 
 it('leaves flat search columns unqualified when the base table cannot be inferred', function () {
@@ -417,7 +417,7 @@ it('leaves flat search columns unqualified when the base table cannot be inferre
     $builder = DB::query()->fromSub(DB::table('test_users'), 'sub');
     (new SearchApplier($resolver))->apply($builder, makeApplierRequest(['search' => 'jane']));
 
-    expect($builder->toSql())->toContain('"first_name" like');
+    expect(sql($builder))->toContain('"first_name" like');
 });
 
 it('qualifies flat search columns with the from alias of an Eloquent builder', function () {

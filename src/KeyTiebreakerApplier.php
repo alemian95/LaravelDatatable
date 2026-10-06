@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AleMian95\Datatable;
 
 use AleMian95\Datatable\Contracts\QueryApplier;
@@ -35,7 +37,7 @@ final class KeyTiebreakerApplier implements QueryApplier
         $qualified = "{$qualifier}.{$key}";
 
         foreach ($query->orders ?? [] as $order) {
-            if (in_array($order['column'] ?? null, [$key, $qualified], true)) {
+            if (is_array($order) && in_array($order['column'] ?? null, [$key, $qualified], true)) {
                 return;
             }
         }

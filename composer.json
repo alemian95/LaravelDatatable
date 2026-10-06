@@ -1,10 +1,15 @@
 {
     "name": "alemian95/laraveldatatable",
-    "description": "This is my package laraveldatatable",
+    "description": "Server-side datatables for Laravel: search, sort, filter and paginate any Eloquent or Query Builder query from HTTP parameters, with a React companion package.",
     "keywords": [
         "alemian95",
         "laravel",
-        "laraveldatatable"
+        "datatable",
+        "datatables",
+        "eloquent",
+        "pagination",
+        "search",
+        "react"
     ],
     "homepage": "https://github.com/alemian95/laraveldatatable",
     "license": "MIT",
@@ -54,6 +59,9 @@
         "format": "vendor/bin/pint"
     },
     "config": {
+        "platform": {
+            "php": "8.3"
+        },
         "sort-packages": true,
         "allow-plugins": {
             "pestphp/pest-plugin": true,

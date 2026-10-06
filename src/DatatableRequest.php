@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AleMian95\Datatable;
 
 use Illuminate\Http\Request;
@@ -11,10 +13,15 @@ class DatatableRequest
 {
     public readonly ?string $search;
 
+    /** @var array<int, string> */
     public readonly array $searchColumns;
 
     public readonly ?string $sortBy;
 
+    /** Current URL without the query string, the base of the pagination links. */
+    public readonly string $url;
+
+    /** @var 'asc'|'desc' */
     public readonly string $sortOrder;
 
     public readonly int $perPage;
@@ -34,15 +41,17 @@ class DatatableRequest
 
     public function __construct(Request $request)
     {
-        // Force to string|null: array inputs (?search[]=a) would otherwise trip
-        // the typed properties with a TypeError before any query runs.
+        // Force to non-empty string|null: array inputs (?search[]=a) would
+        // otherwise trip the typed properties with a TypeError before any query
+        // runs. Compared with '' rather than empty(), so "0" is a real term.
         $search = $request->input('search');
-        $this->search = is_string($search) ? $search : null;
+        $this->search = is_string($search) && $search !== '' ? $search : null;
 
-        $this->searchColumns = array_filter(explode(',', $request->string('search_columns', '')->toString()));
+        $searchColumns = $request->input('search_columns');
+        $this->searchColumns = is_string($searchColumns) ? array_filter(explode(',', $searchColumns)) : [];
 
         $sortBy = $request->input('sort_by');
-        $this->sortBy = is_string($sortBy) ? $sortBy : null;
+        $this->sortBy = is_string($sortBy) && $sortBy !== '' ? $sortBy : null;
 
         // Whitelist the direction: an unvalidated value reaches orderBy() (throws
         // on anything but asc/desc) and is handed to custom-sort closures that
@@ -53,13 +62,15 @@ class DatatableRequest
 
         // ponytail: clamp to [1, max] so a client cannot request an unbounded
         // page size (DoS). Raise max_per_page in config if a legit caller needs more.
-        $perPage = $request->integer('per_page', (int) config('laraveldatatable.default.per_page', 15));
-        $maxPerPage = (int) config('laraveldatatable.default.max_per_page', 100);
+        $perPage = self::integer($request, 'per_page', self::configInteger('laraveldatatable.default.per_page', 15));
+        $maxPerPage = self::configInteger('laraveldatatable.default.max_per_page', 100);
         $this->perPage = max(1, min($perPage, $maxPerPage));
+
+        $this->url = $request->url();
 
         // Read here rather than by paginate() from the global request, so an
         // explicit Request passed to DatatableApi::for() drives the page too.
-        $this->page = max(1, $request->integer('page', 1));
+        $this->page = max(1, self::integer($request, 'page', 1));
 
         [$this->filters, $this->malformedFilters] = self::parseFilters($request->input('filter'));
     }
@@ -67,6 +78,24 @@ class DatatableRequest
     public static function fromRequest(Request $request): self
     {
         return new self($request);
+    }
+
+    // Config often comes from env(), i.e. strings: accept any numeric value
+    // rather than config()->integer(), which throws on "25".
+    private static function configInteger(string $key, int $default): int
+    {
+        $value = config($key);
+
+        return is_numeric($value) ? (int) $value : $default;
+    }
+
+    // Request::integer() casts an array to 1; anything non-numeric falls back
+    // to the default instead.
+    private static function integer(Request $request, string $key, int $default): int
+    {
+        $value = $request->input($key);
+
+        return is_numeric($value) ? (int) $value : $default;
     }
 
     /**
@@ -128,15 +157,5 @@ class DatatableRequest
         }
 
         return $range['from'] === null && $range['to'] === null ? null : $range;
-    }
-
-    public function hasSearch(): bool
-    {
-        return ! empty($this->search);
-    }
-
-    public function hasSorting(): bool
-    {
-        return ! empty($this->sortBy);
     }
 }

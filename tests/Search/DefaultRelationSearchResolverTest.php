@@ -45,7 +45,7 @@ it('auto-discovers a BelongsTo relation on Eloquent', function () {
 
     $query = TestPost::query();
     $query->where(fn ($q) => $spec->apply($q, 'test_posts', 'first_name', 'jane'));
-    $sql = $query->toRawSql();
+    $sql = rawSql($query);
 
     expect($sql)
         ->toContain('from "test_users"')
@@ -63,7 +63,7 @@ it('auto-discovers a HasMany relation on Eloquent', function () {
 
     $query = TestUser::query();
     $query->where(fn ($q) => $spec->apply($q, 'test_users', 'title', 'hello'));
-    $sql = $query->toRawSql();
+    $sql = rawSql($query);
 
     expect($sql)
         ->toContain('from "test_posts"')
