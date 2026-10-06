@@ -174,20 +174,20 @@ The expected response is either a Laravel length-aware paginator
 (`data`, `current_page`, `last_page`, `per_page`, `total`) or the `{ data, links, meta }`
 envelope produced by `returnResource(...)` — both are read transparently.
 
-### Filters are emitted, not applied
+### Filters are applied by `withFilters()`
 
-The package **sends** `filter[...]` params but does not know how to apply them server-side.
-Read them in your controller and translate them into `withCustomFilters(...)` closures on the
-`DatatableApi`, e.g.:
+The table sends `filter[<id>]=value` (and `filter[<id>][from]` / `[to]` for date ranges). On the backend, declare each id with `DatatableApi::withFilters()`:
 
 ```php
-->withCustomFilters([
-    fn ($q) => request('filter.status') ? $q->where('status', request('filter.status')) : $q,
+->withFilters([
+    'status' => fn ($q, string $value) => $q->where('status', $value),
 ])
 ```
+
+Undeclared ids are ignored server-side with a log warning.
 
 ### Sorting is whitelisted server-side
 
 The backend enforces a sort whitelist via `DatatableApi::withSortableColumns(...)`. Only
 expose sortable columns (`enableSorting: true`) that the backend actually allows, otherwise
-the sort is dropped server-side with a warning.
+the sort is dropped server-side with a warning. Without `withSortableColumns()` no column is sortable (custom sorts aside).

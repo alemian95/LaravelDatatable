@@ -80,7 +80,7 @@ return [
 
 ## Usage
 
-The main entry point is `AleMian95\Datatable\DatatableApi`. It implements `JsonSerializable`, so returning an instance directly from a controller produces a paginated JSON response automatically.
+The main entry point is `AleMian95\Datatable\DatatableApi`. Create it with `DatatableApi::for($query)` and return it from a controller: it is `Responsable`, so Laravel turns it into a paginated JSON response. Call `toPaginator()` to get the paginator (or resource collection) directly, e.g. as an Inertia prop. Each call runs on a clone of your query, so the same instance can be executed more than once.
 
 ### Quick start
 
@@ -90,12 +90,11 @@ use App\Models\User;
 
 public function index()
 {
-    return (new DatatableApi())
-        ->fromQuery(User::query());
+    return DatatableApi::for(User::query());
 }
 ```
 
-That single call already supports search, sort and pagination via the HTTP query string described below.
+That call already paginates. Search and sort are opt-in: declare what the client may use with `withSearchableColumns()` (or the `HasSearchableColumns` contract on the model) and `withSortableColumns()`. Anything undeclared is ignored with a log warning.
 
 ### HTTP request contract
 
@@ -108,6 +107,8 @@ That single call already supports search, sort and pagination via the HTTP query
 | `sort_by`        | string         | `null`                                        | Column to sort by. Supports dot-notation for `BelongsTo` relations.   |
 | `sort_order`     | `asc` \| `desc`| `asc`                                         | Sort direction.                                                       |
 | `per_page`       | int            | `config('laraveldatatable.default.per_page', 15)` | Results per page.                                                 |
+| `page`           | int            | `1`                                           | Page number.                                                          |
+| `filter[<key>]`  | string \| `[from]`/`[to]` | none                               | Client filter; applied only when `<key>` is declared via `withFilters()`. |
 
 Example request:
 
@@ -143,13 +144,16 @@ When `returnResource(ResourceClass::class)` is used, the paginator is wrapped in
 
 Each builder method below returns `$this`, so they can be chained freely.
 
-- **`fromQuery(Builder $query): self`** — accepts an Eloquent builder, a `Relation`, or a base `QueryBuilder`. Required.
+- **`DatatableApi::for(Builder $query, ?Request $request = null): self`** — accepts an Eloquent builder, a `Relation`, or a base `QueryBuilder`. Without `$request` the current request is used; pass one explicitly in jobs, commands and tests.
 - **`withCustomSearch(Closure $search): self`** — overrides the default LIKE/auto-column search. The closure receives `($builder, string $term)` and is responsible for the full search clause.
 - **`withCustomSorts(array $sorts): self`** — map of `sort_by` value → `Closure($builder, string $direction)`. Triggered only when the incoming `sort_by` matches a key; otherwise the default sort logic runs.
-- **`withSortableColumns(array $columns): self`** — authoritative whitelist for the `sort_by` parameter (dot-notation entries included, e.g. `author.name`). A `sort_by` outside the list is dropped with a warning instead of reaching the database; keys declared via `withCustomSorts()` are always allowed. Leave it unset to keep the default behavior of sorting by any client-supplied column.
-- **`withCustomFilters(array $filters): self`** — array of `Closure($builder)` applied sequentially. Useful for hard-coded business filters (active scope, tenant scope, etc.) that should not be controllable from the client.
+- **`withSortableColumns(array $columns): self`** — authoritative whitelist for the `sort_by` parameter (dot-notation entries included, e.g. `author.name`). A `sort_by` outside the list is dropped with a warning instead of reaching the database; keys declared via `withCustomSorts()` are always allowed. Without it, only `withCustomSorts()` keys are sortable.
+- **`withFilters(array $filters): self`** — map of `filter[<key>]` name → `Closure($builder, string|array $value)`. A closure runs only when its key is present; range filters receive `['from' => ?string, 'to' => ?string]`. Malformed values and undeclared keys are ignored with a log warning. Fixed constraints (tenant, active scope) belong on the query you pass to `for()`.
+- **`withCustomFilters(array $filters): self`** — *deprecated, removed in 1.0.* Use `withFilters()`.
 - **`withSearchableColumns(array $columns): self`** — declares the authoritative whitelist of columns the search can target for this instance. Wins over the `HasSearchableColumns` contract on the model and is the only way to enable search on a raw `QueryBuilder` when `auto_discover_columns` is `false`. When set, `search_columns` from the request is intersected against this whitelist.
 - **`returnResource(string $resourceClass): self`** — fully-qualified API Resource class name. Output is wrapped via `Resource::collection($paginator)`.
+
+Every `with*` method replaces the previous declaration; the last call wins.
 
 Full chained example:
 
@@ -160,16 +164,19 @@ use App\Models\User;
 
 public function index()
 {
-    return (new DatatableApi())
-        ->fromQuery(
-            User::query()->with('profile', 'role')
+    return DatatableApi::for(
+            User::query()->where('active', true)->with('profile', 'role')
         )
         ->withCustomSorts([
             'full_name' => fn ($builder, $direction) =>
                 $builder->orderByRaw("CONCAT(first_name, ' ', last_name) {$direction}"),
         ])
-        ->withCustomFilters([
-            fn ($builder) => $builder->where('active', true),
+        ->withSortableColumns(['created_at', 'email'])
+        ->withFilters([
+            'status' => fn ($builder, string $value) => $builder->where('status', $value),
+            'created_at' => fn ($builder, array $range) => $builder
+                ->when($range['from'], fn ($q, $from) => $q->whereDate('created_at', '>=', $from))
+                ->when($range['to'], fn ($q, $to) => $q->whereDate('created_at', '<=', $to)),
         ])
         ->returnResource(UserResource::class);
 }
@@ -181,7 +188,7 @@ The set of columns that can be searched is resolved in this order:
 
 1. `DatatableApi::withSearchableColumns(['col_a', 'col_b'])` — wins over everything.
 2. `Model implements HasSearchableColumns` — the contract returns the whitelist (the trait `Concerns\HasSearchableColumns` reads a `protected array $searchable = [...]` property by default).
-3. Auto-discovery via `Schema::getColumnListing` — fallback **only** when `config('laraveldatatable.search.auto_discover_columns')` is `true` (default for backward compatibility). Filters out non-string columns and applies the `auto_discovery_blacklist`. When the request supplies `search_columns` in this branch, they are intersected against the auto-discovery result — so the type filter and the blacklist also protect against client-supplied column names.
+3. Auto-discovery via `Schema::getColumnListing` — fallback **only** when `config('laraveldatatable.search.auto_discover_columns')` is `true` (off by default since 0.9). Filters out non-string columns and applies the `auto_discovery_blacklist`. When the request supplies `search_columns` in this branch, they are intersected against the auto-discovery result — so the type filter and the blacklist also protect against client-supplied column names.
 
 When a whitelist is declared, `search_columns` from the HTTP request is intersected against it: the client can never broaden it. An empty whitelist (`withSearchableColumns([])` or `protected array $searchable = []`) is treated as an **authoritative signal to omit the search clause entirely** — no `LIKE` is applied, the dataset is returned unfiltered by the search term (pagination, sorting and other filters still apply), and there is no fallback to the next source. When no source can satisfy the request and auto-discovery is off, a `SearchColumnsNotConfiguredException` is thrown.
 
@@ -202,8 +209,7 @@ class User extends Model implements HasSearchableColumns
 Example with the per-request override (works for both Eloquent and raw `QueryBuilder`):
 
 ```php
-return (new DatatableApi())
-    ->fromQuery(DB::table('users'))
+return DatatableApi::for(DB::table('users'))
     ->withSearchableColumns(['name', 'email']);
 ```
 
@@ -224,8 +230,7 @@ When `search_columns` contains a dot — `author.name`, `tags.label` — the pac
 **On Eloquent builders** the relation is auto-discovered from the model. No extra configuration is needed:
 
 ```php
-return (new DatatableApi())
-    ->fromQuery(Book::query())
+return DatatableApi::for(Book::query())
     ->withSearchableColumns(['title', 'author.name', 'tags.label']);
 ```
 
@@ -236,8 +241,7 @@ Supported relation types via auto-discovery: `BelongsTo`, `HasOne`, `HasMany`, `
 ```php
 use AleMian95\Datatable\Search\RelationSearch;
 
-return (new DatatableApi())
-    ->fromQuery(DB::table('books'))
+return DatatableApi::for(DB::table('books'))
     ->withSearchableColumns(['title', 'author.name'])
     ->withRelationSearch([
         'author' => RelationSearch::belongsTo('authors'),
@@ -279,9 +283,9 @@ A declared spec wins over Eloquent auto-discovery for the same relation key, whi
 
 1. **Multi-hop dot-notation on raw `QueryBuilder`.** Single-hop paths (`author.name`) work on both Eloquent and raw queries — see [Relational search](#relational-search). Multi-hop paths (`author.country.name`) are supported only on Eloquent (resolved via `orWhereHas`); on a raw `QueryBuilder` they are dropped with a `Log::warning`.
 
-2. **Relational sorting supports `BelongsTo` only.** For `sort_by=author.name`, `SortApplier` performs a `leftJoin` on each `BelongsTo` segment and then orders by the joined column. For any other relation type (or any segment that is not a `BelongsTo`) it falls back to a plain `orderBy('author.name', ...)`, which will fail at the SQL layer because that column does not exist on the base table. Either expose such sorts via `withCustomSorts(...)` or restrict the client to `BelongsTo` paths.
+2. **Relational sorting supports `BelongsTo` only.** For `sort_by=author.name`, `SortApplier` performs a `leftJoin` on each `BelongsTo` segment and then orders by the joined column. A path whose segments are not all `BelongsTo` is dropped with a log warning. Expose such sorts via `withCustomSorts(...)`.
 
-3. **SQL logging outside production.** While `app()->isProduction()` is `false`, every assembled query is written to the application log via `Log::info($builder->toRawSql())`. This is intentional for local debugging — be aware of it in staging environments where it can produce noisy logs.
+3. **SQL logging is opt-in.** With `laraveldatatable.debug.log_sql` set to `true`, each assembled query is written to the log at `info` level. It is off by default because the interpolated SQL contains the raw search term.
 
 ## Testing
 

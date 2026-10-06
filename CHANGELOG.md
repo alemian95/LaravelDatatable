@@ -4,6 +4,8 @@ All notable changes to `LaravelDatatable` will be documented in this file.
 
 ## Unreleased
 
+See [UPGRADE.md](UPGRADE.md) for the 0.1 → 0.9 migration.
+
 ### Added
 
 - `DatatableApi::for($query, ?Request $request = null)` as the entry point; an explicit request also drives the page number.
