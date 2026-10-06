@@ -23,8 +23,11 @@ class DatatableApi implements JsonSerializable, Responsable
 
     protected DatatableRequest $request;
 
-    /** @var QueryApplier[] */
-    protected array $appliers = [];
+    /** @var array<string, \Closure> */
+    protected array $filters = [];
+
+    /** @var array<int, \Closure> */
+    protected array $legacyFilters = [];
 
     /** @var array<string, \Closure> */
     protected array $customSorts = [];
@@ -150,12 +153,36 @@ class DatatableApi implements JsonSerializable, Responsable
     }
 
     /**
+     * Declare the client filters this endpoint accepts, keyed by the
+     * filter[<key>] name. A closure runs only when its key is present and
+     * receives the parsed value: a string, or ['from' => ?string, 'to' => ?string].
+     * Replaces any previous declaration.
+     *
+     * @param  array<string, \Closure>  $filters
+     * @return $this
+     */
+    public function withFilters(array $filters): self
+    {
+        $this->filters = $filters;
+
+        return $this;
+    }
+
+    /**
+     * @deprecated Use withFilters() for client filters; apply fixed constraints
+     *             to the query passed to DatatableApi::for(). Removed in 1.0.
+     *
      * @param  array<\Closure>  $filters
      * @return $this
      */
     public function withCustomFilters(array $filters): self
     {
-        $this->appliers[] = new FilterApplier($filters);
+        trigger_error(
+            'DatatableApi::withCustomFilters() is deprecated and will be removed in 1.0; use withFilters() for client filters and constrain the query passed to DatatableApi::for() for fixed ones.',
+            E_USER_DEPRECATED,
+        );
+
+        $this->legacyFilters = array_values($filters);
 
         return $this;
     }
@@ -220,7 +247,7 @@ class DatatableApi implements JsonSerializable, Responsable
                 $this->relationSearchMap,
             ),
             new SortApplier($this->customSorts, $this->apiDeclaredSortColumns),
-            ...$this->appliers,
+            new FilterApplier($this->filters, $this->legacyFilters),
             new KeyTiebreakerApplier,
         ];
     }
