@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace AleMian95\Datatable\Search\Sources;
 
 use Illuminate\Contracts\Database\Query\Builder;
+use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Query\Builder as QueryBuilder;
-use Illuminate\Support\Facades\Schema;
 
 /**
  * @internal Not covered by semver; see docs/adr/0002-public-api-boundary.md.
@@ -24,8 +24,10 @@ class AutoDiscoveryColumnSource
     public function __construct(private array $blacklist) {}
 
     /**
-     * Searchable columns per table. The source lives as long as the scoped
-     * resolver (one HTTP request or job), so the schema is read once per table.
+     * Searchable columns per connection and table. The source lives as long as
+     * the scoped resolver (one HTTP request or job), so the schema is read once
+     * per table; the database name is part of the key for tenancy setups that
+     * repoint a connection mid-process.
      *
      * @var array<string, array<int, string>>
      */
@@ -38,7 +40,7 @@ class AutoDiscoveryColumnSource
     {
         if ($builder instanceof EloquentBuilder || $builder instanceof Relation) {
             $model = $builder->getModel();
-            $columns = $this->searchableColumns($model->getTable());
+            $columns = $this->searchableColumns($model->getConnection(), $model->getTable());
 
             if ($builder instanceof EloquentBuilder) {
                 foreach (array_keys($builder->getEagerLoads()) as $relationName) {
@@ -51,12 +53,13 @@ class AutoDiscoveryColumnSource
 
         if ($builder instanceof QueryBuilder) {
             $table = $builder->from;
+            $connection = $builder->getConnection();
 
-            if (! is_string($table)) {
+            if (! is_string($table) || ! $connection instanceof Connection) {
                 return [];
             }
 
-            return $this->searchableColumns($table);
+            return $this->searchableColumns($connection, $table);
         }
 
         return [];
@@ -65,24 +68,26 @@ class AutoDiscoveryColumnSource
     /**
      * @return array<int, string>
      */
-    private function searchableColumns(string $table): array
+    private function searchableColumns(Connection $connection, string $table): array
     {
-        if (isset($this->searchableColumnsByTable[$table])) {
-            return $this->searchableColumnsByTable[$table];
+        $key = $connection->getName().'|'.$connection->getDatabaseName().'|'.$table;
+
+        if (isset($this->searchableColumnsByTable[$key])) {
+            return $this->searchableColumnsByTable[$key];
         }
 
         // One Schema::getColumns() call returns names and types together,
         // instead of a type lookup per column.
         $columns = [];
 
-        foreach (Schema::getColumns($table) as $column) {
+        foreach ($connection->getSchemaBuilder()->getColumns($table) as $column) {
             if (in_array(strtolower($column['type_name']), self::SEARCHABLE_TYPES, true)
                 && ! $this->isBlacklisted($column['name'])) {
                 $columns[] = $column['name'];
             }
         }
 
-        return $this->searchableColumnsByTable[$table] = $columns;
+        return $this->searchableColumnsByTable[$key] = $columns;
     }
 
     private function isBlacklisted(string $column): bool
@@ -141,7 +146,7 @@ class AutoDiscoveryColumnSource
         $cleanRelationName = implode('.', $cleanParts);
 
         $relatedTable = $currentModel->getTable();
-        $filtered = $this->searchableColumns($relatedTable);
+        $filtered = $this->searchableColumns($currentModel->getConnection(), $relatedTable);
 
         return array_values(array_map(
             fn (string $column): string => "{$cleanRelationName}.{$column}",

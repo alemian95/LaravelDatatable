@@ -104,3 +104,17 @@ it('introspects each table once and only once per source instance', function () 
     expect($first)->toBeLessThanOrEqual(2)
         ->and(count(DB::getQueryLog()))->toBe($first);
 });
+
+it('reads the schema of the connection the builder runs on, cached per connection', function () {
+    config(['database.connections.tenant' => ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']]);
+    DB::connection('tenant')->getSchemaBuilder()->create('test_users', function ($table) {
+        $table->id();
+        $table->string('nickname');
+    });
+
+    $source = new AutoDiscoveryColumnSource([]);
+
+    // Default connection first, so a table-only cache key would leak its columns.
+    expect($source->columns(DB::table('test_users')))->toContain('first_name')
+        ->and($source->columns(DB::connection('tenant')->table('test_users')))->toBe(['nickname']);
+});
