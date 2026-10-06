@@ -343,8 +343,24 @@ it('strips a table alias from baseTable so default-key derivation works on alias
     $sql = strtolower($builder->toRawSql());
 
     expect($sql)
-        ->toContain('"test_posts"."test_user_id" = "test_users"."id"')
+        ->toContain('"test_posts"."test_user_id" = "u"."id"')
         ->toContain('"test_posts"."title"');
+});
+
+it('runs a declared relation search on an aliased raw query', function () {
+    $ann = TestUser::create(['first_name' => 'Ann', 'last_name' => 'B', 'email' => 'ann@test']);
+    TestUser::create(['first_name' => 'Bob', 'last_name' => 'C', 'email' => 'bob@test']);
+    TestPost::create(['test_user_id' => $ann->id, 'title' => 'hello', 'body' => 'y']);
+
+    $resolver = Mockery::mock(SearchColumnResolver::class);
+    $resolver->shouldReceive('resolve')->once()->andReturn(['posts.title']);
+
+    $builder = DB::table('test_users as u');
+    (new SearchApplier($resolver, null, null, new DefaultRelationSearchResolver, [
+        'posts' => RelationSearch::hasMany('test_posts', 'test_user_id'),
+    ]))->apply($builder, makeApplierRequest(['search' => 'hell']));
+
+    expect($builder->pluck('first_name')->all())->toBe(['Ann']);
 });
 
 it('drops a multi-hop dotted column on raw even when a single-segment spec is declared', function () {

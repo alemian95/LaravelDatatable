@@ -58,7 +58,9 @@ class SearchApplier implements QueryApplier
         $term = $request->search;
         $qualifier = FromClause::qualifier($builder);
 
-        $builder->where(function (Builder $query) use ($resolved, $term, $baseTable, $qualifier): void {
+        $baseAlias = $qualifier === '' ? $baseTable : $qualifier;
+
+        $builder->where(function (Builder $query) use ($resolved, $term, $baseTable, $qualifier, $baseAlias): void {
             foreach ($resolved['flat'] as $field) {
                 // Qualified so a join added later (relation sort, user joins) cannot
                 // make the column ambiguous.
@@ -66,7 +68,7 @@ class SearchApplier implements QueryApplier
             }
 
             foreach ($resolved['dotted'] as $entry) {
-                $entry->apply($query, $baseTable, $term);
+                $entry->apply($query, $baseTable, $baseAlias, $term);
             }
         });
     }
@@ -187,7 +189,7 @@ class SearchApplier implements QueryApplier
  */
 interface DottedEntry
 {
-    public function apply(Builder $query, string $baseTable, string $term): void;
+    public function apply(Builder $query, string $baseTable, string $baseAlias, string $term): void;
 }
 
 final class SpecDottedEntry implements DottedEntry
@@ -197,9 +199,9 @@ final class SpecDottedEntry implements DottedEntry
         private readonly string $remoteColumn,
     ) {}
 
-    public function apply(Builder $query, string $baseTable, string $term): void
+    public function apply(Builder $query, string $baseTable, string $baseAlias, string $term): void
     {
-        $this->spec->apply($query, $baseTable, $this->remoteColumn, $term);
+        $this->spec->apply($query, $baseTable, $this->remoteColumn, $term, $baseAlias);
     }
 }
 
@@ -209,7 +211,7 @@ final class LegacyHasDottedEntry implements DottedEntry
         private readonly string $path,
     ) {}
 
-    public function apply(Builder $query, string $baseTable, string $term): void
+    public function apply(Builder $query, string $baseTable, string $baseAlias, string $term): void
     {
         $segments = explode('.', $this->path);
         $column = array_pop($segments);

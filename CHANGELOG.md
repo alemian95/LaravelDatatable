@@ -8,6 +8,7 @@ All notable changes to `LaravelDatatable` will be documented in this file.
 
 - `%`, `_`, `\` and `!` in the search term are matched literally. Previously `search=%` returned every row. The emitted SQL changes to `"col" like ? escape '!'` (`ilike` on Postgres).
 - Eloquent queries are always ordered by the primary key last, so rows that tie on the sorted column no longer repeat or disappear across pages. Queries with no sort are now ordered by primary key. Raw `DB::table()` queries and grouped queries are unchanged.
+- `RelationSearch` subqueries reference the outer query by its alias, so a declared relation search works on `DB::table('users as u')` (previously an SQL error).
 
 ## v0.1.1 - 2026-10-04
 
