@@ -9,3 +9,7 @@ arch('it will not use debugging functions')
 arch('DatatableApi is final')
     ->expect(DatatableApi::class)
     ->toBeFinal();
+
+arch('source files declare strict types')
+    ->expect('AleMian95\Datatable')
+    ->toUseStrictTypes();

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AleMian95\Datatable;
 
 use Illuminate\Http\Request;

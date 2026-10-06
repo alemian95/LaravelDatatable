@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace AleMian95\Datatable\Search\Sources;
 
 use AleMian95\Datatable\Contracts\HasSearchableColumns;
