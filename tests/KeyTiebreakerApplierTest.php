@@ -55,7 +55,7 @@ it('is applied by DatatableApi after the client sort', function () {
     $this->app->instance('request', Request::create('/', 'GET', ['sort_by' => 'last_name']));
     DB::enableQueryLog();
 
-    DatatableApi::for(TestUser::query())->jsonSerialize();
+    DatatableApi::for(TestUser::query())->withSortableColumns(['last_name'])->jsonSerialize();
 
     expect(collect(DB::getQueryLog())->last()['query'])
         ->toContain('order by "last_name" asc, "test_users"."id" asc');

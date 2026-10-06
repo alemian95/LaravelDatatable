@@ -12,6 +12,7 @@ use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Support\Facades\Log;
 
 class DefaultSearchColumnResolver implements SearchColumnResolver
 {
@@ -36,11 +37,7 @@ class DefaultSearchColumnResolver implements SearchColumnResolver
         if ($this->autoDiscoverEnabled) {
             $autoColumns = $this->autoSource->columns($builder);
 
-            if (empty($request->searchColumns)) {
-                return $autoColumns;
-            }
-
-            return array_values(array_intersect($request->searchColumns, $autoColumns));
+            return $this->intersectWithRequest($autoColumns, $request);
         }
 
         throw $this->makeException($builder);
@@ -62,16 +59,25 @@ class DefaultSearchColumnResolver implements SearchColumnResolver
     }
 
     /**
-     * @param  array<int, string>  $whitelist
+     * @param  array<int, string>  $allowed
      * @return array<int, string>
      */
-    private function intersectWithRequest(array $whitelist, DatatableRequest $request): array
+    private function intersectWithRequest(array $allowed, DatatableRequest $request): array
     {
         if (empty($request->searchColumns)) {
-            return $whitelist;
+            return $allowed;
         }
 
-        return array_values(array_intersect($request->searchColumns, $whitelist));
+        $dropped = array_diff($request->searchColumns, $allowed);
+
+        if ($dropped !== []) {
+            Log::warning(sprintf(
+                'Search dropped search_columns [%s]: not searchable for this table.',
+                implode(', ', $dropped),
+            ));
+        }
+
+        return array_values(array_intersect($request->searchColumns, $allowed));
     }
 
     private function makeException(Builder $builder): SearchColumnsNotConfiguredException

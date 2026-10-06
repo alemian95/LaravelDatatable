@@ -127,8 +127,8 @@ class DatatableApi implements JsonSerializable, Responsable
      * the "sort_by" request parameter (dot-notation entries included, e.g.
      * "author.name"). When set, a "sort_by" outside the whitelist is dropped
      * with a warning instead of hitting the database. Keys declared through
-     * withCustomSorts() are always allowed regardless of this list. Leave unset
-     * to preserve the legacy behavior of sorting by any client-supplied column.
+     * withCustomSorts() are always allowed regardless of this list. Without it,
+     * only withCustomSorts() keys are sortable.
      *
      * @param  array<int, string>  $columns
      * @return $this

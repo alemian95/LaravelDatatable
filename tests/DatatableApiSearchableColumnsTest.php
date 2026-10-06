@@ -83,9 +83,12 @@ it('throws when no whitelist exists and auto-discovery is off', function () {
 })->throws(SearchColumnsNotConfiguredException::class);
 
 it('uses auto-discovery when no whitelist exists and the flag is on', function () {
+    config()->set('laraveldatatable.search.auto_discover_columns', true);
+    app()->forgetInstance(SearchColumnResolver::class);
+
     bindRequest(['search' => 'jane']);
 
-    // Plain TestUser has no whitelist; auto-discovery is on by default.
+    // Plain TestUser has no whitelist; auto-discovery enabled explicitly.
     $result = DatatableApi::for(TestUser::query())->jsonSerialize();
 
     // "jane" matches first_name and email rows.
@@ -108,8 +111,11 @@ it('omits the search clause end-to-end when withSearchableColumns is called with
 });
 
 it('drops blacklisted request.search_columns end-to-end via the auto-discovery blacklist', function () {
+    config()->set('laraveldatatable.search.auto_discover_columns', true);
+    app()->forgetInstance(SearchColumnResolver::class);
+
     // TestUser has NO HasSearchableColumns trait, so no model whitelist.
-    // Default config: auto-discover on, blacklist excludes password/*_token/etc.
+    // auto-discovery enabled explicitly, blacklist excludes password/*_token/etc.
     // Client tries to search 'secret' on password and api_token. Both are filtered
     // out by the auto-discovery blacklist, so the intersection is empty, no WHERE
     // clause is added, and all rows are returned.

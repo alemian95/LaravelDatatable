@@ -20,14 +20,6 @@ it('skips sorting when the request has no sort_by', function () {
     expect($builder->toSql())->not->toContain('order by');
 });
 
-it('sorts by any column when no whitelist is declared (legacy behavior)', function () {
-    $builder = TestUser::query();
-
-    (new SortApplier)->apply($builder, makeSortRequest(['sort_by' => 'email', 'sort_order' => 'desc']));
-
-    expect($builder->toSql())->toContain('order by')->toContain('"email"');
-});
-
 it('applies the sort when sort_by is inside the declared whitelist', function () {
     $builder = TestUser::query();
 

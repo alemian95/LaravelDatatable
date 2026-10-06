@@ -10,6 +10,12 @@ All notable changes to `LaravelDatatable` will be documented in this file.
 - `DatatableApi` is `Responsable` and has a public `toPaginator()`; each execution runs on a clone of the builder, so it can run more than once.
 - `withFilters(['key' => fn ($query, $value) => ...])`: keyed client filters. The closure runs only when `filter[key]` is present and receives a string or `['from' => ?string, 'to' => ?string]`; malformed values and undeclared keys are ignored with a log warning.
 
+### Changed (breaking)
+
+- `auto_discover_columns` now defaults to `false`. A search on a table with no declared searchable columns throws `SearchColumnsNotConfiguredException`; set the option back to `true` to restore discovery. See UPGRADE.md.
+- Without `withSortableColumns()`, `sort_by` is ignored with a log warning; only `withCustomSorts()` keys apply. See UPGRADE.md.
+- Requested `search_columns` outside the whitelist are now logged as a warning (they were already ignored).
+
 ### Deprecated
 
 - `new DatatableApi()` + `fromQuery()`: use `DatatableApi::for($query)`. Removed in 1.0.

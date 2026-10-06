@@ -37,7 +37,7 @@ class DatatableServiceProvider extends PackageServiceProvider
                 new ApiDeclaredColumnSource,
                 new ModelDeclaredColumnSource,
                 new AutoDiscoveryColumnSource($config['auto_discovery_blacklist'] ?? []),
-                (bool) ($config['auto_discover_columns'] ?? true),
+                (bool) ($config['auto_discover_columns'] ?? false),
             );
         });
 
