@@ -18,7 +18,7 @@ Pass a request explicitly outside HTTP: `DatatableApi::for($query, $request)`.
 
 ### Search columns are no longer discovered by default (breaking)
 
-`auto_discover_columns` now defaults to `false`. A search on a table with no declared columns throws `SearchColumnsNotConfiguredException`.
+`auto_discover_columns` now defaults to `false`. A search on a table with no declared columns is ignored with a log warning (0.9.0 threw `SearchColumnsNotConfiguredException`).
 
 ```php
 // Declare per endpoint…

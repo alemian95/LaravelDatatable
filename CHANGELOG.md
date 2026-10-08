@@ -2,6 +2,17 @@
 
 All notable changes to `LaravelDatatable` will be documented in this file.
 
+## Unreleased
+
+### Changed
+
+- A search on a table with no declared searchable columns is ignored with a log warning instead of throwing `SearchColumnsNotConfiguredException` (a 500 at the first keystroke in the React table). See ADR 0005.
+
+### Fixed
+
+- A `filter[...]` value of the wrong shape for its closure (a `{from, to}` range for `string $value`, a single value for `array $range`) is ignored with a warning instead of raising a `TypeError` (500). Untyped closures still receive both shapes.
+- README: the config example shows `auto_discover_columns => false`, the actual default.
+
 ## v0.9.0 - 2026-10-06
 
 Beta of 1.0: the public API and HTTP contract are the ones 1.0 will freeze (see `docs/adr/0002-public-api-boundary.md`). See [UPGRADE.md](UPGRADE.md) for the 0.1 → 0.9 migration.

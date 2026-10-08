@@ -59,7 +59,7 @@ return [
     'search' => [
         // When true: fall back to Schema introspection if no whitelist is declared.
         // When false: declaring HasSearchableColumns or withSearchableColumns() is mandatory.
-        'auto_discover_columns' => true,
+        'auto_discover_columns' => false,
 
         // Column names / wildcard patterns always excluded from auto-discovery.
         'auto_discovery_blacklist' => [
@@ -140,7 +140,7 @@ Each builder method below returns `$this`, so they can be chained freely.
 - **`withCustomSearch(Closure $search): self`** — overrides the default LIKE/auto-column search. The closure receives `($builder, string $term)` and is responsible for the full search clause.
 - **`withCustomSorts(array $sorts): self`** — map of `sort_by` value → `Closure($builder, string $direction)`. Triggered only when the incoming `sort_by` matches a key; otherwise the default sort logic runs.
 - **`withSortableColumns(array $columns): self`** — authoritative whitelist for the `sort_by` parameter (dot-notation entries included, e.g. `author.name`). A `sort_by` outside the list is dropped with a warning instead of reaching the database; keys declared via `withCustomSorts()` are always allowed. Without it, only `withCustomSorts()` keys are sortable.
-- **`withFilters(array $filters): self`** — map of `filter[<key>]` name → `Closure($builder, string|array $value)`. A closure runs only when its key is present; range filters receive `['from' => ?string, 'to' => ?string]`. Malformed values and undeclared keys are ignored with a log warning. Fixed constraints (tenant, active scope) belong on the query you pass to `for()`.
+- **`withFilters(array $filters): self`** — map of `filter[<key>]` name → `Closure($builder, string|array $value)`. A closure runs only when its key is present; range filters receive `['from' => ?string, 'to' => ?string]`. Type the value as `string` or `array` to accept only that shape: a value of the other shape is ignored like a malformed one, instead of reaching the closure. Malformed values and undeclared keys are ignored with a log warning. Fixed constraints (tenant, active scope) belong on the query you pass to `for()`.
 - **`withCustomFilters(array $filters): self`** — *deprecated, removed in 1.0.* Use `withFilters()`.
 - **`withSearchableColumns(array $columns): self`** — declares the authoritative whitelist of columns the search can target for this instance. Wins over the `HasSearchableColumns` contract on the model and is the only way to enable search on a raw `QueryBuilder` when `auto_discover_columns` is `false`. When set, `search_columns` from the request is intersected against this whitelist.
 - **`returnResource(string $resourceClass): self`** — fully-qualified API Resource class name. Output is wrapped via `Resource::collection($paginator)`.
@@ -180,9 +180,9 @@ The set of columns that can be searched is resolved in this order:
 
 1. `DatatableApi::withSearchableColumns(['col_a', 'col_b'])` — wins over everything.
 2. `Model implements HasSearchableColumns` — the contract returns the whitelist (the trait `Concerns\HasSearchableColumns` reads a `protected array $searchable = [...]` property by default).
-3. Auto-discovery via `Schema::getColumnListing` — fallback **only** when `config('laraveldatatable.search.auto_discover_columns')` is `true` (off by default since 0.9). Filters out non-string columns and applies the `auto_discovery_blacklist`. When the request supplies `search_columns` in this branch, they are intersected against the auto-discovery result — so the type filter and the blacklist also protect against client-supplied column names.
+3. Auto-discovery via `Schema::getColumns()` — fallback **only** when `config('laraveldatatable.search.auto_discover_columns')` is `true` (off by default since 0.9). Filters out non-string columns and applies the `auto_discovery_blacklist`. When the request supplies `search_columns` in this branch, they are intersected against the auto-discovery result — so the type filter and the blacklist also protect against client-supplied column names.
 
-When a whitelist is declared, `search_columns` from the HTTP request is intersected against it: the client can never broaden it. An empty whitelist (`withSearchableColumns([])` or `protected array $searchable = []`) is treated as an **authoritative signal to omit the search clause entirely** — no `LIKE` is applied, the dataset is returned unfiltered by the search term (pagination, sorting and other filters still apply), and there is no fallback to the next source. When no source can satisfy the request and auto-discovery is off, a `SearchColumnsNotConfiguredException` is thrown.
+When a whitelist is declared, `search_columns` from the HTTP request is intersected against it: the client can never broaden it. An empty whitelist (`withSearchableColumns([])` or `protected array $searchable = []`) is treated as an **authoritative signal to omit the search clause entirely** — no `LIKE` is applied, the dataset is returned unfiltered by the search term (pagination, sorting and other filters still apply), and there is no fallback to the next source. When no source can satisfy the request and auto-discovery is off, the search is ignored with a log warning: the request still succeeds, unfiltered by the term.
 
 Example with the trait:
 
