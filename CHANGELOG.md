@@ -2,7 +2,7 @@
 
 All notable changes to `LaravelDatatable` will be documented in this file.
 
-## Unreleased
+## v0.9.1 - 2026-10-08
 
 ### Added
 
