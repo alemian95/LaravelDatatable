@@ -117,8 +117,44 @@ export function Users() {
 interface DatatableConfig {
   baseUrl: string           // prepended to each DataTable endpoint
   headers?: HeadersInit | (() => HeadersInit | Promise<HeadersInit>)
+  labels?: Partial<DatatableLabels>  // texts shown by the tables
 }
 ```
+
+#### Labels
+
+Every text the tables show comes from `labels`. Pass only the keys you want to change; the
+rest keep the English defaults (exported as `defaultLabels`). Counts and pages are functions:
+
+```tsx
+<DatatableProvider config={{
+  baseUrl: '',
+  labels: {
+    search: 'Cerca…',
+    filters: 'Filtri',
+    columns: 'Colonne',
+    any: 'Tutti',
+    from: 'dal',
+    to: 'al',
+    reset: 'Azzera',
+    applyFilters: 'Applica filtri',
+    selected: (n) => `${n} selezionati`,
+    actions: 'Azioni…',
+    apply: 'Applica',
+    loading: 'Caricamento…',
+    error: 'Impossibile caricare i dati.',
+    retry: 'Riprova',
+    noResults: 'Nessun risultato.',
+    total: (n) => `${n} risultati`,
+    page: (page, pages) => `Pagina ${page} di ${pages}`,
+    previous: 'Precedente',
+    next: 'Successiva',
+  },
+}}>
+```
+
+See the `DatatableLabels` type for every key, including the accessible names
+(`selectAll`, `selectRow`, `bulkAction`) and `searchDisabled`, `filtersDescription`, `applying`.
 
 The provider owns an internal `QueryClient` by default. Pass `queryClient` to share your
 app's own client with the tables.
@@ -156,6 +192,9 @@ whitelist decides.
 
 The hook behind `DataTable`, exported for custom UIs. Returns
 `{ rows, pageCount, total, isLoading, isFetching, error, refetch }`.
+
+Only network failures are retried. An HTTP error is reported at once, with the
+status and the server's `message` in `error.message` (e.g. `Request failed with status 500: Server Error`).
 
 ## Request contract
 

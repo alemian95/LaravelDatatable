@@ -277,7 +277,14 @@ A declared spec wins over Eloquent auto-discovery for the same relation key, whi
 
 2. **Relational sorting supports `BelongsTo` only.** For `sort_by=author.name`, `SortApplier` performs a `leftJoin` on each `BelongsTo` segment and then orders by the joined column. A path whose segments are not all `BelongsTo` is dropped with a log warning. Expose such sorts via `withCustomSorts(...)`.
 
-3. **SQL logging is opt-in.** With `laraveldatatable.debug.log_sql` set to `true`, each assembled query is written to the log at `info` level. It is off by default because the interpolated SQL contains the raw search term.
+3. **Joined columns on a raw `QueryBuilder` need a custom search.** Plain search columns are qualified with the base table (`order_items.name`), and a dotted entry always means a *relation*, never `table.column`. To search a joined table, use `withCustomSearch()`:
+
+   ```php
+   DatatableApi::for(DB::table('order_items')->join('products', 'products.id', '=', 'order_items.product_id'))
+       ->withCustomSearch(fn ($q, string $term) => $q->whereLike('products.name', "%{$term}%"));
+   ```
+
+4. **SQL logging is opt-in.** With `laraveldatatable.debug.log_sql` set to `true`, each assembled query is written to the log at `info` level. It is off by default because the interpolated SQL contains the raw search term.
 
 ## Testing
 
