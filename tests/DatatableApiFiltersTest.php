@@ -131,3 +131,53 @@ it('reports every dropped filter key in one warning per request', function () {
     Log::shouldHaveReceived('warning')->once();
     Log::shouldHaveReceived('warning')->withArgs(fn (string $m) => str_contains($m, '[a, b, c]'));
 });
+
+it('drops a range sent to a filter typed string, with a warning', function () {
+    Log::spy();
+    $called = false;
+
+    $total = filtered(['filter' => ['last_name' => ['from' => 'a']]])
+        ->withFilters(['last_name' => function ($q, string $value) use (&$called) {
+            $called = true;
+        }])
+        ->toPaginator()
+        ->total();
+
+    expect($called)->toBeFalse()->and($total)->toBe(2);
+    Log::shouldHaveReceived('warning')->withArgs(fn (string $m) => str_contains($m, '[last_name]'))->once();
+});
+
+it('drops a single value sent to a filter typed array, with a warning', function () {
+    Log::spy();
+    $called = false;
+
+    filtered(['filter' => ['created_at' => '2026-01-01']])
+        ->withFilters(['created_at' => function ($q, array $range) use (&$called) {
+            $called = true;
+        }])
+        ->toPaginator();
+
+    expect($called)->toBeFalse();
+    Log::shouldHaveReceived('warning')->withArgs(fn (string $m) => str_contains($m, '[created_at]'))->once();
+});
+
+it('passes any value shape to an untyped filter', function () {
+    $received = [];
+    $filter = function ($q, $value) use (&$received) {
+        $received[] = $value;
+    };
+
+    filtered(['filter' => ['a' => 'x', 'b' => ['to' => '2026-01-01']]])
+        ->withFilters(['a' => $filter, 'b' => $filter])
+        ->toPaginator();
+
+    expect($received)->toBe(['x', ['from' => null, 'to' => '2026-01-01']]);
+});
+
+it('calls a filter that ignores the value', function () {
+    $result = filtered(['filter' => ['doe' => '1']])
+        ->withFilters(['doe' => fn ($q) => $q->where('last_name', 'Doe')])
+        ->toPaginator();
+
+    expect($result->total())->toBe(1);
+});

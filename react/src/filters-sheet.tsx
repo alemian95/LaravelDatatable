@@ -3,6 +3,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
+import { useLabels } from './provider'
 import type { FilterDef, FilterValue } from './types'
 
 // Radix Select forbids an empty-string item value, so "clear this filter" needs
@@ -17,6 +18,7 @@ export interface FiltersSheetProps {
 }
 
 export function FiltersSheet({ filters, values, onApply, activeCount }: FiltersSheetProps) {
+  const labels = useLabels()
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState<Record<string, FilterValue>>(values)
 
@@ -33,12 +35,12 @@ export function FiltersSheet({ filters, values, onApply, activeCount }: FiltersS
       }}
     >
       <SheetTrigger asChild>
-        <Button>Filters{activeCount > 0 ? ` (${activeCount})` : ''}</Button>
+        <Button>{labels.filters}{activeCount > 0 ? ` (${activeCount})` : ''}</Button>
       </SheetTrigger>
       <SheetContent side="right">
         <SheetHeader>
-          <SheetTitle>Filters</SheetTitle>
-          <SheetDescription>Narrow the results with extra conditions.</SheetDescription>
+          <SheetTitle>{labels.filters}</SheetTitle>
+          <SheetDescription>{labels.filtersDescription}</SheetDescription>
         </SheetHeader>
         <div className="mt-4 space-y-4">
           {filters.map((f) => (
@@ -58,14 +60,14 @@ export function FiltersSheet({ filters, values, onApply, activeCount }: FiltersS
 
               {f.type === 'select' && (
                 <Select
-                  value={((draft[f.id] as string) || undefined) ?? undefined}
+                  value={(draft[f.id] as string) || ANY}
                   onValueChange={(v) => set(f.id, v === ANY ? '' : v)}
                 >
                   <SelectTrigger id={`f-${f.id}`} aria-label={f.label} className="w-full">
-                    <SelectValue placeholder="Any" />
+                    <SelectValue placeholder={labels.any} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={ANY}>Any</SelectItem>
+                    <SelectItem value={ANY}>{labels.any}</SelectItem>
                     {f.options.map((o) => (
                       <SelectItem key={o.value} value={o.value}>
                         {o.label}
@@ -78,7 +80,7 @@ export function FiltersSheet({ filters, values, onApply, activeCount }: FiltersS
               {f.type === 'date-range' && (
                 <div className="flex gap-2">
                   <Input
-                    aria-label={`${f.label} from`}
+                    aria-label={`${f.label} ${labels.from}`}
                     type="date"
                     value={(draft[f.id] as { from?: string } | undefined)?.from ?? ''}
                     onChange={(e) =>
@@ -86,7 +88,7 @@ export function FiltersSheet({ filters, values, onApply, activeCount }: FiltersS
                     }
                   />
                   <Input
-                    aria-label={`${f.label} to`}
+                    aria-label={`${f.label} ${labels.to}`}
                     type="date"
                     value={(draft[f.id] as { to?: string } | undefined)?.to ?? ''}
                     onChange={(e) =>
@@ -100,7 +102,7 @@ export function FiltersSheet({ filters, values, onApply, activeCount }: FiltersS
 
           <div className="flex gap-2 pt-2">
             <Button className="flex-1" onClick={() => setDraft({})}>
-              Reset
+              {labels.reset}
             </Button>
             <Button
               className="flex-1"
@@ -109,7 +111,7 @@ export function FiltersSheet({ filters, values, onApply, activeCount }: FiltersS
                 setOpen(false)
               }}
             >
-              Apply filters
+              {labels.applyFilters}
             </Button>
           </div>
         </div>

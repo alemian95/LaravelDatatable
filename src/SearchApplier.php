@@ -7,6 +7,7 @@ namespace AleMian95\Datatable;
 use AleMian95\Datatable\Contracts\QueryApplier;
 use AleMian95\Datatable\Contracts\RelationSearchResolver;
 use AleMian95\Datatable\Contracts\SearchColumnResolver;
+use AleMian95\Datatable\Exceptions\SearchColumnsNotConfiguredException;
 use AleMian95\Datatable\Search\ContainsLike;
 use AleMian95\Datatable\Search\DottedEntry;
 use AleMian95\Datatable\Search\LegacyHasDottedEntry;
@@ -50,7 +51,15 @@ class SearchApplier implements QueryApplier
             return;
         }
 
-        $searchColumns = $this->resolver->resolve($builder, $request, $this->apiDeclaredColumns);
+        // Like an undeclared sort or filter: the request still succeeds, the
+        // misconfiguration surfaces in the logs (ADR 0005).
+        try {
+            $searchColumns = $this->resolver->resolve($builder, $request, $this->apiDeclaredColumns);
+        } catch (SearchColumnsNotConfiguredException $e) {
+            Log::warning('SearchApplier ignored the search: '.$e->getMessage());
+
+            return;
+        }
 
         if (empty($searchColumns)) {
             return;

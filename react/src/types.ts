@@ -19,6 +19,40 @@ export type HeadersResolver =
 export interface DatatableConfig {
   baseUrl: string
   headers?: HeadersResolver
+  /** Texts shown by the tables; missing keys keep the English default. */
+  labels?: Partial<DatatableLabels>
+}
+
+export interface DatatableLabels {
+  search: string
+  /** Search placeholder while every searchable column is hidden. */
+  searchDisabled: string
+  columns: string
+  filters: string
+  filtersDescription: string
+  /** The "no filter" choice of a select filter. */
+  any: string
+  /** Accessible names of a date range's inputs, after the filter label. */
+  from: string
+  to: string
+  reset: string
+  applyFilters: string
+  selected: (count: number) => string
+  /** Accessible name of the bulk action select. */
+  bulkAction: string
+  actions: string
+  apply: string
+  applying: string
+  selectAll: string
+  selectRow: string
+  loading: string
+  error: string
+  retry: string
+  noResults: string
+  total: (count: number) => string
+  page: (page: number, pages: number) => string
+  previous: string
+  next: string
 }
 
 export interface ColumnMeta {

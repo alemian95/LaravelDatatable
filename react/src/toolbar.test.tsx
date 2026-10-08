@@ -23,7 +23,14 @@ describe('Toolbar', () => {
     )
     expect(screen.getByText('2 selected')).toBeTruthy()
 
-    await userEvent.selectOptions(screen.getByLabelText('Bulk action'), 'del')
+    // Radix Select needs these in jsdom.
+    Element.prototype.hasPointerCapture ??= () => false
+    Element.prototype.scrollIntoView ??= () => {}
+    // The package's own Select, styled like the rest, not a native <select>.
+    const trigger = screen.getByRole('combobox', { name: 'Bulk action' })
+    expect(trigger.tagName).toBe('BUTTON')
+    await userEvent.click(trigger)
+    await userEvent.click(await screen.findByRole('option', { name: 'Delete' }))
     await userEvent.click(screen.getByText('Apply'))
     expect(handler).toHaveBeenCalledWith([{ id: 1 }, { id: 2 }])
     expect(onActionDone).toHaveBeenCalled()

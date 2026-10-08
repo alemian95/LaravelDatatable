@@ -4,7 +4,6 @@ use AleMian95\Datatable\Concerns\HasSearchableColumns as HasSearchableColumnsTra
 use AleMian95\Datatable\Contracts\HasSearchableColumns;
 use AleMian95\Datatable\Contracts\SearchColumnResolver;
 use AleMian95\Datatable\DatatableApi;
-use AleMian95\Datatable\Exceptions\SearchColumnsNotConfiguredException;
 use AleMian95\Datatable\Tests\Fixtures\Models\TestUser;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -72,15 +71,17 @@ it('supports raw QueryBuilder via withSearchableColumns()', function () {
     expect($result->total())->toBe(2); // Jane + Janet
 });
 
-it('throws when no whitelist exists and auto-discovery is off', function () {
+it('skips the search when no whitelist exists and auto-discovery is off', function () {
     config()->set('laraveldatatable.search.auto_discover_columns', false);
     // Rebind the resolver to pick up the new config.
     app()->forgetInstance(SearchColumnResolver::class);
 
     bindRequest(['search' => 'jane']);
 
-    DatatableApi::for(TestUser::query())->jsonSerialize();
-})->throws(SearchColumnsNotConfiguredException::class);
+    $total = DatatableApi::for(TestUser::query())->toPaginator()->total();
+
+    expect($total)->toBe(TestUser::count());
+});
 
 it('uses auto-discovery when no whitelist exists and the flag is on', function () {
     config()->set('laraveldatatable.search.auto_discover_columns', true);

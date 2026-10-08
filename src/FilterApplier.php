@@ -31,7 +31,7 @@ final class FilterApplier implements QueryApplier
         $dropped = $request->malformedFilters;
 
         foreach ($request->filters as $key => $value) {
-            if (isset($this->filters[$key])) {
+            if (isset($this->filters[$key]) && self::accepts($this->filters[$key], $value)) {
                 ($this->filters[$key])($builder, $value);
             } else {
                 $dropped[] = $key;
@@ -44,9 +44,31 @@ final class FilterApplier implements QueryApplier
         if ($dropped !== [] && $this->legacyFilters === []) {
             sort($dropped);
             Log::warning(sprintf(
-                'FilterApplier dropped filters [%s]: not declared via DatatableApi::withFilters(), or not a non-empty string / {from, to} value.',
+                'FilterApplier dropped filters [%s]: not declared via DatatableApi::withFilters(), or not a non-empty string / {from, to} value matching the closure\'s value type.',
                 implode(', ', $dropped),
             ));
         }
+    }
+
+    /**
+     * A closure typing its value as string or array declares the shape it
+     * takes: the other shape is client input it cannot handle (a TypeError,
+     * i.e. a 500), so it is dropped like any malformed value.
+     *
+     * @param  string|array{from: ?string, to: ?string}  $value
+     */
+    private static function accepts(\Closure $filter, string|array $value): bool
+    {
+        $type = ((new \ReflectionFunction($filter))->getParameters()[1] ?? null)?->getType();
+
+        if (! $type instanceof \ReflectionNamedType) {
+            return true;
+        }
+
+        return match ($type->getName()) {
+            'string' => is_string($value),
+            'array' => is_array($value),
+            default => true,
+        };
     }
 }

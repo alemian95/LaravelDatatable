@@ -21,17 +21,27 @@ async function requestHeaders(resolver: Parameters<typeof resolveHeaders>[0]): P
   return headers
 }
 
+async function httpError(res: Response): Promise<Error> {
+  const body: unknown = await res.json().catch(() => null)
+  const message = typeof body === 'object' && body !== null && 'message' in body ? body.message : null
+  return new Error(`Request failed with status ${res.status}${typeof message === 'string' ? `: ${message}` : ''}`)
+}
+
 export function useDatatable<T>(endpoint: string, query: DatatableQuery) {
   const config = useDatatableConfig()
 
   const q = useQuery({
     queryKey: [config.baseUrl, endpoint, query],
     placeholderData: keepPreviousData,
+    // Retry only network failures (fetch rejects with a TypeError). An answer
+    // from the server, a 500, an expired session or an unexpected body, will
+    // not change on retry.
+    retry: (failures, error) => error instanceof TypeError && failures < 3,
     queryFn: async ({ signal }): Promise<PaginatorResponse<T>> => {
       const headers = await requestHeaders(config.headers)
       const url = `${config.baseUrl}${endpoint}?${buildParams(query).toString()}`
       const res = await fetch(url, { headers, signal })
-      if (!res.ok) throw new Error(`Request failed with status ${res.status}`)
+      if (!res.ok) throw await httpError(res)
       return toPaginator<T>(await res.json())
     },
   })
