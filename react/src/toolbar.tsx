@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Column, Table } from '@tanstack/react-table'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -67,20 +68,18 @@ export function Toolbar<T>(props: ToolbarProps<T>) {
             <span className="rounded-md bg-gray-100 px-3 py-1 text-sm text-gray-900 dark:bg-gray-800 dark:text-gray-50">
               {labels.selected(selectedRows.length)}
             </span>
-            <select
-              aria-label={labels.bulkAction}
-              value={action}
-              onChange={(e) => setAction(e.target.value)}
-              disabled={pending}
-              className="h-9 rounded-md border border-gray-200 bg-white px-2 text-sm disabled:opacity-50 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-50"
-            >
-              <option value="">{labels.actions}</option>
-              {bulkActions.map((a) => (
-                <option key={a.value} value={a.value}>
-                  {a.label}
-                </option>
-              ))}
-            </select>
+            <Select value={action} onValueChange={setAction} disabled={pending}>
+              <SelectTrigger aria-label={labels.bulkAction} className="w-44">
+                <SelectValue placeholder={labels.actions} />
+              </SelectTrigger>
+              <SelectContent>
+                {bulkActions.map((a) => (
+                  <SelectItem key={a.value} value={a.value}>
+                    {a.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button onClick={apply} disabled={pending || action === ''}>
               {pending ? labels.applying : labels.apply}
             </Button>

@@ -60,7 +60,7 @@ export function FiltersSheet({ filters, values, onApply, activeCount }: FiltersS
 
               {f.type === 'select' && (
                 <Select
-                  value={((draft[f.id] as string) || undefined) ?? undefined}
+                  value={(draft[f.id] as string) || ANY}
                   onValueChange={(v) => set(f.id, v === ANY ? '' : v)}
                 >
                   <SelectTrigger id={`f-${f.id}`} aria-label={f.label} className="w-full">
