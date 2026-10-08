@@ -10,6 +10,7 @@ import {
 } from '@tanstack/react-table'
 import { useDatatable } from './use-datatable'
 import { Toolbar } from './toolbar'
+import { useLabels } from './provider'
 import { columnId, resolveSearchColumns } from './search-columns'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table'
 import { Button } from './ui/button'
@@ -53,6 +54,7 @@ export function DataTable<T>({
   bulkActions,
   getRowId,
 }: DataTableProps<T>) {
+  const labels = useLabels()
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: defaultPerPage })
   const [sorting, setSorting] = useState<SortingState>([])
   const [search, setSearch] = useState('')
@@ -100,19 +102,19 @@ export function DataTable<T>({
         <Checkbox
           checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')}
           onCheckedChange={(v) => table.toggleAllPageRowsSelected(!!v)}
-          aria-label="Select all"
+          aria-label={labels.selectAll}
         />
       ),
       cell: ({ row }) => (
         <Checkbox
           checked={row.getIsSelected()}
           onCheckedChange={(v) => row.toggleSelected(!!v)}
-          aria-label="Select row"
+          aria-label={labels.selectRow}
         />
       ),
     }
     return [selectionColumn, ...columns]
-  }, [columns, selectable])
+  }, [columns, selectable, labels])
 
 
   const query: DatatableQuery = useMemo(() => {
@@ -218,19 +220,19 @@ export function DataTable<T>({
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={colCount} className="text-gray-500">
-                  Loading…
+                  {labels.loading}
                 </TableCell>
               </TableRow>
             ) : error ? (
               <TableRow>
                 <TableCell colSpan={colCount} className="text-gray-500">
-                  Couldn't load the data. <Button onClick={() => refetch()}>Retry</Button>
+                  {labels.error} <Button onClick={() => refetch()}>{labels.retry}</Button>
                 </TableCell>
               </TableRow>
             ) : rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={colCount} className="text-gray-500">
-                  No results.
+                  {labels.noResults}
                 </TableCell>
               </TableRow>
             ) : (
@@ -249,7 +251,7 @@ export function DataTable<T>({
       </div>
 
       <div className="flex items-center justify-between text-sm text-gray-500">
-        <span>{total} total</span>
+        <span>{labels.total(total)}</span>
         <div className="flex items-center gap-4">
           <Select
             value={String(pagination.pageSize)}
@@ -267,14 +269,14 @@ export function DataTable<T>({
             </SelectContent>
           </Select>
           <span>
-            Page {pagination.pageIndex + 1} of {Math.max(pageCount, 1)}
+            {labels.page(pagination.pageIndex + 1, Math.max(pageCount, 1))}
           </span>
           <div className="flex gap-2">
             <Button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-              Previous
+              {labels.previous}
             </Button>
             <Button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-              Next
+              {labels.next}
             </Button>
           </div>
         </div>

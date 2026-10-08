@@ -1,6 +1,7 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useMemo, useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import type { DatatableConfig } from './types'
+import { defaultLabels } from './labels'
+import type { DatatableConfig, DatatableLabels } from './types'
 
 const DatatableContext = createContext<DatatableConfig | null>(null)
 
@@ -26,6 +27,12 @@ export function DatatableProvider({
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
     </DatatableContext.Provider>
   )
+}
+
+/** The provider's labels over the English defaults; defaults alone outside a provider. */
+export function useLabels(): DatatableLabels {
+  const labels = useContext(DatatableContext)?.labels
+  return useMemo(() => (labels ? { ...defaultLabels, ...labels } : defaultLabels), [labels])
 }
 
 export function useDatatableConfig(): DatatableConfig {

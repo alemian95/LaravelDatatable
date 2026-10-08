@@ -1,4 +1,5 @@
-export { DatatableProvider, useDatatableConfig } from './provider'
+export { DatatableProvider, useDatatableConfig, useLabels } from './provider'
+export { defaultLabels } from './labels'
 export { DataTable, type DataTableProps } from './data-table'
 export { useDatatable } from './use-datatable'
 // Re-exported so consumers can author columns and cells without importing
@@ -13,6 +14,7 @@ export type {
 } from '@tanstack/react-table'
 export type {
   DatatableConfig,
+  DatatableLabels,
   HeadersResolver,
   ColumnMeta,
   FilterDef,

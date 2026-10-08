@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
 import { FiltersSheet } from './filters-sheet'
+import { useLabels } from './provider'
 import type { BulkAction, FilterDef, FilterValue } from './types'
 
 export interface ToolbarProps<T> {
@@ -31,6 +32,7 @@ function columnLabel<T>(column: Column<T, unknown>): string {
 
 export function Toolbar<T>(props: ToolbarProps<T>) {
   const { table, search, onSearch, searchDisabled, filters, filterValues, onFilters, bulkActions, selectedRows, onActionDone } = props
+  const labels = useLabels()
   const [action, setAction] = useState('')
   const [pending, setPending] = useState(false)
 
@@ -54,7 +56,7 @@ export function Toolbar<T>(props: ToolbarProps<T>) {
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-2">
         <Input
-          placeholder={searchDisabled ? 'Show a searchable column to search' : 'Search…'}
+          placeholder={searchDisabled ? labels.searchDisabled : labels.search}
           value={search}
           onChange={(e) => onSearch(e.target.value)}
           disabled={searchDisabled}
@@ -63,16 +65,16 @@ export function Toolbar<T>(props: ToolbarProps<T>) {
         {selectedRows.length > 0 && bulkActions?.length ? (
           <>
             <span className="rounded-md bg-gray-100 px-3 py-1 text-sm text-gray-900 dark:bg-gray-800 dark:text-gray-50">
-              {selectedRows.length} selected
+              {labels.selected(selectedRows.length)}
             </span>
             <select
-              aria-label="Bulk action"
+              aria-label={labels.bulkAction}
               value={action}
               onChange={(e) => setAction(e.target.value)}
               disabled={pending}
               className="h-9 rounded-md border border-gray-200 bg-white px-2 text-sm disabled:opacity-50 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-50"
             >
-              <option value="">Actions…</option>
+              <option value="">{labels.actions}</option>
               {bulkActions.map((a) => (
                 <option key={a.value} value={a.value}>
                   {a.label}
@@ -80,7 +82,7 @@ export function Toolbar<T>(props: ToolbarProps<T>) {
               ))}
             </select>
             <Button onClick={apply} disabled={pending || action === ''}>
-              {pending ? 'Applying…' : 'Apply'}
+              {pending ? labels.applying : labels.apply}
             </Button>
           </>
         ) : null}
@@ -97,7 +99,7 @@ export function Toolbar<T>(props: ToolbarProps<T>) {
         ) : null}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button>Columns</Button>
+            <Button>{labels.columns}</Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {table
