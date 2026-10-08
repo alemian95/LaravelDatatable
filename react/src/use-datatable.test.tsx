@@ -101,3 +101,26 @@ describe('useDatatable', () => {
     expect(result.current.total).toBe(60)
   })
 })
+
+describe('useDatatable HTTP errors', () => {
+  it('does not retry an HTTP error and reports the server message', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: false,
+      status: 500,
+      json: async () => ({ message: 'Server Error' }),
+    })))
+    // Default client options: the hook itself must opt out of retries.
+    const client = new QueryClient()
+    const { result } = renderHook(() => useDatatable('/users', { page: 1, perPage: 15 }), {
+      wrapper: ({ children }) => (
+        <DatatableProvider config={{ baseUrl: '' }} queryClient={client}>
+          {children}
+        </DatatableProvider>
+      ),
+    })
+
+    await waitFor(() => expect(result.current.error).not.toBeNull())
+    expect(fetch).toHaveBeenCalledTimes(1)
+    expect(result.current.error?.message).toBe('Request failed with status 500: Server Error')
+  })
+})
