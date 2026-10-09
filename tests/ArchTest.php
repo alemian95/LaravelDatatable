@@ -13,3 +13,11 @@ arch('DatatableApi is final')
 arch('source files declare strict types')
     ->expect('AleMian95\Datatable')
     ->toUseStrictTypes();
+
+test('the 0.9 deprecations are gone and for() is the only way in', function () {
+    $api = new ReflectionClass(DatatableApi::class);
+
+    expect($api->hasMethod('fromQuery'))->toBeFalse()
+        ->and($api->hasMethod('withCustomFilters'))->toBeFalse()
+        ->and($api->getConstructor()?->isPrivate())->toBeTrue();
+});

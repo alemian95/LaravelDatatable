@@ -24,8 +24,6 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class DatatableApi implements JsonSerializable, Responsable
 {
-    private Builder $builder;
-
     private DatatableRequest $request;
 
     /** Base of the pagination links when a request was passed explicitly; otherwise paginate() resolves it. */
@@ -33,9 +31,6 @@ final class DatatableApi implements JsonSerializable, Responsable
 
     /** @var array<string, \Closure> */
     private array $filters = [];
-
-    /** @var array<int, \Closure> */
-    private array $legacyFilters = [];
 
     /** @var array<string, \Closure> */
     private array $customSorts = [];
@@ -54,20 +49,8 @@ final class DatatableApi implements JsonSerializable, Responsable
     /** @var class-string<JsonResource>|null */
     private ?string $resourceClass = null;
 
-    /**
-     * @internal Use DatatableApi::for(). The argument-less form is deprecated.
-     */
-    public function __construct(?Builder $query = null, ?Request $request = null)
+    private function __construct(private Builder $builder, ?Request $request)
     {
-        if ($query === null) {
-            trigger_error(
-                'new DatatableApi() + fromQuery() is deprecated and will be removed in 1.0; use DatatableApi::for($query).',
-                E_USER_DEPRECATED,
-            );
-        } else {
-            $this->builder = $query;
-        }
-
         $this->request = DatatableRequest::fromRequest($request ?? request());
         $this->paginationPath = $request?->url();
     }
@@ -150,18 +133,6 @@ final class DatatableApi implements JsonSerializable, Responsable
     }
 
     /**
-     * @deprecated Use DatatableApi::for($query). Removed in 1.0.
-     *
-     * @return $this
-     */
-    public function fromQuery(Builder $query): self
-    {
-        $this->builder = $query;
-
-        return $this;
-    }
-
-    /**
      * Declare the client filters this endpoint accepts, keyed by the
      * filter[<key>] name. A closure runs only when its key is present and
      * receives the parsed value: a string, or ['from' => ?string, 'to' => ?string].
@@ -173,25 +144,6 @@ final class DatatableApi implements JsonSerializable, Responsable
     public function withFilters(array $filters): self
     {
         $this->filters = $filters;
-
-        return $this;
-    }
-
-    /**
-     * @deprecated Use withFilters() for client filters; apply fixed constraints
-     *             to the query passed to DatatableApi::for(). Removed in 1.0.
-     *
-     * @param  array<\Closure>  $filters
-     * @return $this
-     */
-    public function withCustomFilters(array $filters): self
-    {
-        trigger_error(
-            'DatatableApi::withCustomFilters() is deprecated and will be removed in 1.0; use withFilters() for client filters and constrain the query passed to DatatableApi::for() for fixed ones.',
-            E_USER_DEPRECATED,
-        );
-
-        $this->legacyFilters = array_values($filters);
 
         return $this;
     }
@@ -268,7 +220,7 @@ final class DatatableApi implements JsonSerializable, Responsable
                 $this->relationSearchMap,
             ),
             new SortApplier($this->customSorts, $this->apiDeclaredSortColumns),
-            new FilterApplier($this->filters, $this->legacyFilters),
+            new FilterApplier($this->filters),
             new KeyTiebreakerApplier,
         ];
     }

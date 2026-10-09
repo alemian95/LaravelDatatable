@@ -29,8 +29,8 @@ class DatatableRequest
     public readonly array $filters;
 
     /**
-     * Keys whose value had an unsupported shape; reported by FilterApplier,
-     * which knows whether legacy closures may handle them.
+     * Keys whose value had an unsupported shape; reported by FilterApplier
+     * in its single warning.
      *
      * @var array<int, string>
      */
