@@ -15,19 +15,11 @@ final class FilterApplier implements QueryApplier
 {
     /**
      * @param  array<string, \Closure>  $filters  Keyed by the filter[<key>] name; receive ($builder, $value).
-     * @param  array<int, \Closure>  $legacyFilters  Deprecated withCustomFilters() closures; receive ($builder).
      */
-    public function __construct(
-        private readonly array $filters = [],
-        private readonly array $legacyFilters = [],
-    ) {}
+    public function __construct(private readonly array $filters = []) {}
 
     public function apply(Builder $builder, DatatableRequest $request): void
     {
-        foreach ($this->legacyFilters as $filter) {
-            $filter($builder);
-        }
-
         $dropped = $request->malformedFilters;
 
         foreach ($request->filters as $key => $value) {
@@ -38,10 +30,8 @@ final class FilterApplier implements QueryApplier
             }
         }
 
-        // One line per request, however many keys a client sends. Legacy
-        // closures read filter[...] from the request themselves, so a key we
-        // cannot apply is not necessarily unhandled while they exist.
-        if ($dropped !== [] && $this->legacyFilters === []) {
+        // One line per request, however many keys a client sends.
+        if ($dropped !== []) {
             sort($dropped);
             Log::warning(sprintf(
                 'FilterApplier dropped filters [%s]: not declared via DatatableApi::withFilters(), or not a non-empty string / {from, to} value matching the closure\'s value type.',

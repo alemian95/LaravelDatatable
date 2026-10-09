@@ -78,26 +78,6 @@ it('returns the resource envelope with meta when a resource is set', function ()
     expect($response->getData(true)['meta']['total'])->toBe(2);
 });
 
-it('keeps the deprecated constructor + fromQuery working and flags it', function () {
-    app()->instance('request', datatableRequest([]));
-    $messages = [];
-    set_error_handler(function (int $level, string $message) use (&$messages): bool {
-        $messages[] = $message;
-
-        return true;
-    }, E_USER_DEPRECATED);
-
-    try {
-        $result = (new DatatableApi)->fromQuery(TestUser::query())->toPaginator();
-    } finally {
-        restore_error_handler();
-    }
-
-    expect($result->total())->toBe(2)
-        ->and($messages)->toHaveCount(1)
-        ->and($messages[0])->toContain('DatatableApi::for(');
-});
-
 it('serializes a resource result with the same envelope as the response', function () {
     $api = DatatableApi::for(TestUser::query(), datatableRequest([]))->returnResource(JsonResource::class);
 

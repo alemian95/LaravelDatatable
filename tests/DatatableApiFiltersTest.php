@@ -15,17 +15,6 @@ function filtered(array $params): DatatableApi
     return DatatableApi::for(TestUser::query(), Request::create('/', 'GET', $params));
 }
 
-function withoutDeprecations(Closure $run): mixed
-{
-    set_error_handler(fn (): bool => true, E_USER_DEPRECATED);
-
-    try {
-        return $run();
-    } finally {
-        restore_error_handler();
-    }
-}
-
 it('applies a declared filter with the parsed value', function () {
     $result = filtered(['filter' => ['last_name' => 'Doe']])
         ->withFilters(['last_name' => fn ($q, string $value) => $q->where('last_name', $value)])
@@ -74,53 +63,12 @@ it('replaces filters on a second withFilters() call', function () {
     expect($result->total())->toBe(1);
 });
 
-it('keeps withCustomFilters() working, replacing on each call, and flags it', function () {
-    $messages = [];
-    set_error_handler(function (int $level, string $message) use (&$messages): bool {
-        $messages[] = $message;
-
-        return true;
-    }, E_USER_DEPRECATED);
-
-    try {
-        $result = filtered([])
-            ->withCustomFilters([fn ($q) => $q->whereRaw('1 = 0')])
-            ->withCustomFilters([fn ($q) => $q->where('first_name', 'Jane')])
-            ->toPaginator();
-    } finally {
-        restore_error_handler();
-    }
-
-    expect($result->total())->toBe(1)
-        ->and($messages[0])->toContain('withFilters()');
-});
-
-it('stays quiet about undeclared filter keys while legacy filters are set', function () {
-    Log::spy();
-
-    withoutDeprecations(fn () => filtered(['filter' => ['status' => 'x']])
-        ->withCustomFilters([fn ($q) => $q])
-        ->toPaginator());
-
-    Log::shouldNotHaveReceived('warning');
-});
-
-it('warns about a malformed filter value when no legacy filters are set', function () {
+it('warns about a malformed filter value', function () {
     Log::spy();
 
     filtered(['filter' => ['tags' => ['a', 'b']]])->withFilters([])->toPaginator();
 
     Log::shouldHaveReceived('warning')->withArgs(fn (string $m) => str_contains($m, '[tags]'))->once();
-});
-
-it('stays quiet about malformed filter values while legacy filters may read them', function () {
-    Log::spy();
-
-    withoutDeprecations(fn () => filtered(['filter' => ['tags' => ['a', 'b']]])
-        ->withCustomFilters([fn ($q) => $q])
-        ->toPaginator());
-
-    Log::shouldNotHaveReceived('warning');
 });
 
 it('reports every dropped filter key in one warning per request', function () {
