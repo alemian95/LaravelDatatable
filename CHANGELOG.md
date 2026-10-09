@@ -2,25 +2,6 @@
 
 All notable changes to `LaravelDatatable` will be documented in this file.
 
-## 0.9.1 - 2026-10-08
-
-### Added
-
-- React: every text the tables show is configurable through `DatatableProvider` `config.labels` (`Partial<DatatableLabels>`, English defaults exported as `defaultLabels`).
-
-### Changed
-
-- A search on a table with no declared searchable columns is ignored with a log warning instead of throwing `SearchColumnsNotConfiguredException` (a 500 at the first keystroke in the React table). See ADR 0005.
-
-### Fixed
-
-- A `filter[...]` value of the wrong shape for its closure (a `{from, to}` range for `string $value`, a single value for `array $range`) is ignored with a warning instead of raising a `TypeError` (500). Untyped closures still receive both shapes.
-- README: the config example shows `auto_discover_columns => false`, the actual default.
-- README: documents that joined columns on a raw `QueryBuilder` are searched with `withCustomSearch()`, and that a dotted search column always means a relation.
-- React: an HTTP error is no longer retried three times (about 7 s of stale rows before the error showed); only network failures are. The error message includes the server's `message`.
-- React: the filter select no longer switches from uncontrolled to controlled (a React warning).
-- React: the bulk action menu uses the package's own select, styled like the rest of the table, instead of a native `<select>`.
-
 ## v1.0.0 - 2026-10-09
 
 First stable release: the public API, the HTTP contract and the React exports listed in ADR 0002 follow semver from here. See [UPGRADE.md](UPGRADE.md) for 0.9 → 1.0.
