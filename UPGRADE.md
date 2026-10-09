@@ -1,8 +1,15 @@
 # Upgrade guide
 
+## 0.9 → 1.0
+
+1.0 removes what 0.9 deprecated. If your app runs on 0.9 with no `E_USER_DEPRECATED` in the `deprecations` log channel, there is nothing to change.
+
+- `new DatatableApi()` and `fromQuery()` are gone: use `DatatableApi::for($query)`. The constructor is private.
+- `withCustomFilters()` is gone: use `withFilters()` for client filters, and constrain the query passed to `for()` for fixed ones (see below).
+
 ## 0.1 → 0.9
 
-0.9 is the beta of 1.0: the API below is the one 1.0 will freeze. Deprecated APIs keep working in 0.9, emit `E_USER_DEPRECATED` (Laravel logs it to the `deprecations` channel), and are removed in 1.0.
+0.9 is the beta of 1.0: the API below is the one 1.0 froze. Deprecated APIs keep working in 0.9, emit `E_USER_DEPRECATED` (Laravel logs it to the `deprecations` channel), and are removed in 1.0.
 
 ### Entry point (deprecated)
 

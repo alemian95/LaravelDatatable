@@ -21,6 +21,19 @@ All notable changes to `LaravelDatatable` will be documented in this file.
 - React: the filter select no longer switches from uncontrolled to controlled (a React warning).
 - React: the bulk action menu uses the package's own select, styled like the rest of the table, instead of a native `<select>`.
 
+## v1.0.0 - 2026-10-09
+
+First stable release: the public API, the HTTP contract and the React exports listed in ADR 0002 follow semver from here. See [UPGRADE.md](UPGRADE.md) for 0.9 → 1.0.
+
+### Removed
+
+- `new DatatableApi()` and `DatatableApi::fromQuery()`, deprecated in 0.9: use `DatatableApi::for($query)`. The constructor is now private.
+- `DatatableApi::withCustomFilters()`, deprecated in 0.9: use `withFilters()`, and constrain the query passed to `for()` for fixed filters.
+
+### Added
+
+- README: a Versioning section stating the semver surface.
+
 ## v0.9.1 - 2026-10-08
 
 ### Added

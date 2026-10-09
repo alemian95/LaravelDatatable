@@ -1,7 +1,7 @@
 # 6. Migration from 0.1 to 0.9
 
 Date: 2026-10-06
-Status: Accepted
+Status: Accepted; deprecations removed in 1.0.0 (2026-10-09)
 
 ## Context
 

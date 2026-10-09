@@ -141,7 +141,6 @@ Each builder method below returns `$this`, so they can be chained freely.
 - **`withCustomSorts(array $sorts): self`** — map of `sort_by` value → `Closure($builder, string $direction)`. Triggered only when the incoming `sort_by` matches a key; otherwise the default sort logic runs.
 - **`withSortableColumns(array $columns): self`** — authoritative whitelist for the `sort_by` parameter (dot-notation entries included, e.g. `author.name`). A `sort_by` outside the list is dropped with a warning instead of reaching the database; keys declared via `withCustomSorts()` are always allowed. Without it, only `withCustomSorts()` keys are sortable.
 - **`withFilters(array $filters): self`** — map of `filter[<key>]` name → `Closure($builder, string|array $value)`. A closure runs only when its key is present; range filters receive `['from' => ?string, 'to' => ?string]`. Type the value as `string` or `array` to accept only that shape: a value of the other shape is ignored like a malformed one, instead of reaching the closure. Malformed values and undeclared keys are ignored with a log warning. Fixed constraints (tenant, active scope) belong on the query you pass to `for()`.
-- **`withCustomFilters(array $filters): self`** — *deprecated, removed in 1.0.* Use `withFilters()`.
 - **`withSearchableColumns(array $columns): self`** — declares the authoritative whitelist of columns the search can target for this instance. Wins over the `HasSearchableColumns` contract on the model and is the only way to enable search on a raw `QueryBuilder` when `auto_discover_columns` is `false`. When set, `search_columns` from the request is intersected against this whitelist.
 - **`returnResource(string $resourceClass): self`** — fully-qualified API Resource class name. Output is wrapped via `Resource::collection($paginator)`.
 
@@ -265,7 +264,7 @@ A declared spec wins over Eloquent auto-discovery for the same relation key, whi
 ])
 ```
 
-**Multi-hop** dotted paths (`book.author.country.name`) are resolved automatically on Eloquent via the existing `orWhereHas` chain. On raw `QueryBuilder` multi-hop is unsupported in v1 — the column is dropped with a `Log::warning`.
+**Multi-hop** dotted paths (`book.author.country.name`) are resolved automatically on Eloquent via the existing `orWhereHas` chain. On raw `QueryBuilder` multi-hop is unsupported — the column is dropped with a `Log::warning`.
 
 **Generated SQL** uses `orWhereExists` with explicit key joins (and an inner join for `belongsToMany`). Columns are always qualified `table.column` to avoid ambiguity with the base table.
 
@@ -285,6 +284,16 @@ A declared spec wins over Eloquent auto-discovery for the same relation key, whi
    ```
 
 4. **SQL logging is opt-in.** With `laraveldatatable.debug.log_sql` set to `true`, each assembled query is written to the log at `info` level. It is off by default because the interpolated SQL contains the raw search term.
+
+## Versioning
+
+The package follows [semantic versioning](https://semver.org). The public API, the one a minor or patch release never breaks, is listed in [ADR 0002](docs/adr/0002-public-api-boundary.md):
+
+- `DatatableApi` (final, created with `DatatableApi::for()`), `Search\RelationSearch`, the `HasSearchableColumns` contract and trait, `SearchColumnsNotConfiguredException`, the config keys and the `datatable:install` command;
+- the HTTP contract: the query parameters and the two response envelopes above;
+- every export of the React package.
+
+Everything marked `@internal` (appliers, resolvers, `DatatableRequest`, …) can change in any release. The Composer package and the npm package are released together with the same version number.
 
 ## Testing
 
