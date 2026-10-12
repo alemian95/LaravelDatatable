@@ -2,6 +2,14 @@
 
 All notable changes to `LaravelDatatable` will be documented in this file.
 
+## v1.1.0 - 2026-10-12
+
+### Added
+
+- An Agent Skill for the coding agents of the package's users, in `resources/boost/skills/laraveldatatable/SKILL.md`. It covers the public API, the HTTP contract and the React component. [Laravel Boost](https://laravel.com/docs/boost) picks it up on `boost:install` / `boost:update`.
+- `datatable:install` offers to copy the Agent Skill into `.claude/skills/` and `.agents/skills/` when Boost is not installed, and points to `boost:install` when it is. Refresh the copies with `php artisan vendor:publish --tag=laraveldatatable-skill --force`.
+- README: an "AI coding agents" section. `CONTRIBUTING.md`.
+
 ## v1.0.0 - 2026-10-09
 
 First stable release: the public API, the HTTP contract and the React exports listed in ADR 0002 follow semver from here. See [UPGRADE.md](UPGRADE.md) for 0.9 → 1.0.
