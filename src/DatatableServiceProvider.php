@@ -25,6 +25,20 @@ class DatatableServiceProvider extends PackageServiceProvider
             ->hasCommand(InstallCommand::class);
     }
 
+    public function packageBooted(): void
+    {
+        // Fallback Distribution for projects without Laravel Boost: Claude Code
+        // reads .claude/skills, the other agents read .agents/skills.
+        $skill = __DIR__.'/../resources/boost/skills/laraveldatatable';
+
+        // Same source, two targets: publishes() keys by source path, so the
+        // trailing slash keeps the second entry from overwriting the first.
+        $this->publishes([
+            $skill => base_path('.claude/skills/laraveldatatable'),
+            $skill.'/' => base_path('.agents/skills/laraveldatatable'),
+        ], 'laraveldatatable-skill');
+    }
+
     public function registeringPackage(): void
     {
         // Scoped instead of singleton: a fresh resolver is built for each HTTP

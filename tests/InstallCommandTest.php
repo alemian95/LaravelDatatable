@@ -24,7 +24,7 @@ it('installs the npm package with npm by default and publishes the config', func
     Process::fake();
     writePackageJson();
 
-    $this->artisan('datatable:install')->assertSuccessful();
+    $this->artisan('datatable:install', ['--no-interaction' => true])->assertSuccessful();
 
     Process::assertRan(fn ($process) => $process->command === ['npm', 'install', '@alemian95/laraveldatatable-react']);
 });
@@ -34,7 +34,7 @@ it('uses the package manager detected from the lockfile', function (): void {
     writePackageJson();
     File::put(base_path('pnpm-lock.yaml'), '');
 
-    $this->artisan('datatable:install')->assertSuccessful();
+    $this->artisan('datatable:install', ['--no-interaction' => true])->assertSuccessful();
 
     Process::assertRan(fn ($process) => $process->command === ['pnpm', 'add', '@alemian95/laraveldatatable-react']);
 });
@@ -42,7 +42,7 @@ it('uses the package manager detected from the lockfile', function (): void {
 it('fails and runs nothing when there is no package.json', function (): void {
     Process::fake();
 
-    $this->artisan('datatable:install')->assertFailed();
+    $this->artisan('datatable:install', ['--no-interaction' => true])->assertFailed();
 
     Process::assertNothingRan();
 });
@@ -53,14 +53,14 @@ it('fails when the npm install command fails', function (): void {
     ]);
     writePackageJson();
 
-    $this->artisan('datatable:install')->assertFailed();
+    $this->artisan('datatable:install', ['--no-interaction' => true])->assertFailed();
 });
 
 it('warns about missing peer dependencies', function (): void {
     Process::fake();
     writePackageJson(['dependencies' => ['react' => '^18']]);
 
-    $this->artisan('datatable:install')
+    $this->artisan('datatable:install', ['--no-interaction' => true])
         ->expectsOutputToContain('react-dom')
         ->assertSuccessful();
 });

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AleMian95\Datatable\Commands;
 
+use Composer\InstalledVersions;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Process;
 
@@ -11,7 +12,7 @@ class InstallCommand extends Command
 {
     protected $signature = 'datatable:install';
 
-    protected $description = 'Install the React frontend package and publish the config file.';
+    protected $description = 'Install the React frontend package, publish the config file and offer the Agent Skill.';
 
     private const NPM_PACKAGE = '@alemian95/laraveldatatable-react';
 
@@ -45,6 +46,7 @@ class InstallCommand extends Command
         $this->components->info('Publishing the config file...');
         $this->callSilent('vendor:publish', ['--tag' => 'laraveldatatable-config']);
 
+        $this->offerAgentSkill();
         $this->warnMissingPeers($base);
         $this->printNextSteps();
 
@@ -65,6 +67,25 @@ class InstallCommand extends Command
             file_exists($base.'/yarn.lock') => ['yarn', ['add']],
             default => ['npm', ['install']],
         };
+    }
+
+    private function offerAgentSkill(): void
+    {
+        // Boost copies the skill from vendor/ itself, but only into packages
+        // picked in an interactive boost:install / boost:update run.
+        if (InstalledVersions::isInstalled('laravel/boost')) {
+            $this->components->info('Laravel Boost detected: run <options=bold>php artisan boost:install</> and select this package to give your coding agents its Agent Skill.');
+
+            return;
+        }
+
+        if (! $this->input->isInteractive()
+            || ! $this->confirm('Copy the Agent Skill for coding agents into .claude/skills and .agents/skills?', true)) {
+            return;
+        }
+
+        $this->callSilent('vendor:publish', ['--tag' => 'laraveldatatable-skill', '--force' => true]);
+        $this->components->info('Agent Skill copied. Refresh it after an update with <options=bold>php artisan vendor:publish --tag=laraveldatatable-skill --force</>.');
     }
 
     private function warnMissingPeers(string $base): void
