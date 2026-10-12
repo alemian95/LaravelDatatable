@@ -12,7 +12,8 @@ const SKILL_DIR = __DIR__.'/../resources/boost/skills/laraveldatatable';
 
 function skill(): string
 {
-    return (string) file_get_contents(SKILL_DIR.'/SKILL.md');
+    // Windows checkouts may convert line endings to CRLF.
+    return str_replace("\r\n", "\n", (string) file_get_contents(SKILL_DIR.'/SKILL.md'));
 }
 
 it('has a frontmatter whose name matches its folder', function (): void {
