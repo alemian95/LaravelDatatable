@@ -30,7 +30,20 @@ If you want the ready-made React datatable, run the install command:
 php artisan datatable:install
 ```
 
-It installs the `@alemian95/laraveldatatable-react` npm package (detecting npm / pnpm / yarn / bun from your lockfile), publishes the config file, warns about missing peer dependencies (`react`, `react-dom`, `tailwindcss`), and prints the remaining setup steps. The frontend is optional — the backend works on its own. See the [React package README](react/README.md) for the component API.
+It installs the `@alemian95/laraveldatatable-react` npm package (detecting npm / pnpm / yarn / bun from your lockfile), publishes the config file, offers the [Agent Skill](#ai-coding-agents), warns about missing peer dependencies (`react`, `react-dom`, `tailwindcss`), and prints the remaining setup steps. The frontend is optional — the backend works on its own. See the [React package README](react/README.md) for the component API.
+
+### AI coding agents
+
+The package ships an Agent Skill: instructions that teach coding agents (Claude Code, Codex, Cursor, Copilot, Gemini, Junie) its public API, the HTTP contract and the React component. Agents load it only when a task touches the package.
+
+- **With [Laravel Boost](https://laravel.com/docs/boost)**: run `php artisan boost:install` (or `boost:update`) and select `alemian95/laraveldatatable`. Boost copies the skill into each agent's folder and refreshes it on `boost:update`.
+- **Without Boost**: `datatable:install` offers to copy it into `.claude/skills/laraveldatatable/` and `.agents/skills/laraveldatatable/`. After updating the package, refresh the copies with:
+
+  ```bash
+  php artisan vendor:publish --tag=laraveldatatable-skill --force
+  ```
+
+  Local edits to the copies are overwritten by the refresh.
 
 Optionally, publish the config file to override defaults:
 
